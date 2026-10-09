@@ -12,4 +12,10 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    // Pre-bundle late-discovered deps so Vite doesn't re-optimize mid-session (which splits React into two copies).
+    optimizeDeps: {
+      include: ["recharts", "gsap", "gsap/ScrollTrigger", "framer-motion", "date-fns", "@hookform/resolvers/zod", "react-hook-form", "zod"],
+    },
+  },
 });
