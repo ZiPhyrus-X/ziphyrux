@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as CoordinatorRouteImport } from './routes/coordinator'
+import { Route as EditorRouteImport } from './routes/editor'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminCollegesRouteImport } from './routes/admin.colleges'
@@ -27,6 +29,16 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoordinatorRoute = CoordinatorRouteImport.update({
+  id: '/coordinator',
+  path: '/coordinator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditorRoute = EditorRouteImport.update({
+  id: '/editor',
+  path: '/editor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -68,6 +80,8 @@ const AdminMModuleRoute = AdminMModuleRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/coordinator': typeof CoordinatorRoute
+  '/editor': typeof EditorRoute
   '/login': typeof LoginRoute
   '/admin/colleges': typeof AdminCollegesRoute
   '/admin/users': typeof AdminUsersRoute
@@ -78,6 +92,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/coordinator': typeof CoordinatorRoute
+  '/editor': typeof EditorRoute
   '/login': typeof LoginRoute
   '/admin/colleges': typeof AdminCollegesRoute
   '/admin/users': typeof AdminUsersRoute
@@ -90,6 +106,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/coordinator': typeof CoordinatorRoute
+  '/editor': typeof EditorRoute
   '/login': typeof LoginRoute
   '/admin/colleges': typeof AdminCollegesRoute
   '/admin/users': typeof AdminUsersRoute
@@ -103,6 +121,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/coordinator'
+    | '/editor'
     | '/login'
     | '/admin/colleges'
     | '/admin/users'
@@ -113,6 +133,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/coordinator'
+    | '/editor'
     | '/login'
     | '/admin/colleges'
     | '/admin/users'
@@ -124,6 +146,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/coordinator'
+    | '/editor'
     | '/login'
     | '/admin/colleges'
     | '/admin/users'
@@ -136,6 +160,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  CoordinatorRoute: typeof CoordinatorRoute
+  EditorRoute: typeof EditorRoute
   LoginRoute: typeof LoginRoute
   LegalDocRoute: typeof LegalDocRoute
 }
@@ -154,6 +180,20 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coordinator': {
+      id: '/coordinator'
+      path: '/coordinator'
+      fullPath: '/coordinator'
+      preLoaderRoute: typeof CoordinatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/editor': {
+      id: '/editor'
+      path: '/editor'
+      fullPath: '/editor'
+      preLoaderRoute: typeof EditorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -229,6 +269,8 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  CoordinatorRoute: CoordinatorRoute,
+  EditorRoute: EditorRoute,
   LoginRoute: LoginRoute,
   LegalDocRoute: LegalDocRoute,
 }
