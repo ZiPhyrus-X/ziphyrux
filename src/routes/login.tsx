@@ -100,7 +100,7 @@ function LoginPage() {
               <FlaskConical className="h-4 w-4 shrink-0 text-warning" />
               <p>
                 <strong className="text-foreground">Development preview.</strong> Sign-in is simulated and not connected to a real backend.
-                Use <code className="font-mono text-foreground">{DEV_MOCK_HINT.loginId}</code> / <code className="font-mono text-foreground">{DEV_MOCK_HINT.password}</code>.
+                Use <code className="font-mono text-foreground">dev.superadmin</code>, <code className="font-mono text-foreground">dev.editor</code> or <code className="font-mono text-foreground">dev.coordinator</code> with password <code className="font-mono text-foreground">{DEV_MOCK_HINT.password}</code>.
               </p>
             </div>
           )}

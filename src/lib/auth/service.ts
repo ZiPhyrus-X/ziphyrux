@@ -7,7 +7,7 @@
 export type Role = "super_admin" | "student" | "trainer" | "coordinator" | "editor" | "placement_officer" | "employer";
 
 export interface Session {
-  user: { id: string; loginId: string; name: string; role: Role };
+  user: { id: string; loginId: string; name: string; role: Role; collegeId?: string; collegeName?: string };
   issuedAt: string;
   source: "dev-mock" | "api";
 }
@@ -36,14 +36,21 @@ const apiAdapter: AuthAdapter = {
  * labelled everywhere it appears and issues sessions marked "dev-mock".
  */
 export const DEV_MOCK_HINT = { loginId: "dev.superadmin", password: "preview-only" };
+/** Preview accounts. In api mode the role comes from the backend, never from here. */
+export const DEV_MOCK_ACCOUNTS: { loginId: string; name: string; role: Role; collegeId?: string; collegeName?: string }[] = [
+  { loginId: "dev.superadmin", name: "Preview Administrator", role: "super_admin" },
+  { loginId: "dev.editor", name: "Preview Editor", role: "editor" },
+  { loginId: "dev.coordinator", name: "Preview Coordinator", role: "coordinator", collegeId: "col-001", collegeName: "Sample Institute of Technology" },
+];
 const devMockAdapter: AuthAdapter = {
   async signIn(loginId, password) {
     await new Promise((r) => setTimeout(r, 900));
     if (loginId === "server.error") throw new AuthError("server_error", "The server could not be reached. Please try again.");
-    if (loginId !== DEV_MOCK_HINT.loginId || password !== DEV_MOCK_HINT.password)
+    const acct = DEV_MOCK_ACCOUNTS.find((a) => a.loginId === loginId);
+    if (!acct || password !== DEV_MOCK_HINT.password)
       throw new AuthError("invalid_credentials", "The login ID or password is incorrect.");
     return {
-      user: { id: "dev-0001", loginId, name: "Preview Administrator", role: "super_admin" },
+      user: { id: `dev-${acct.role}`, ...acct },
       issuedAt: new Date().toISOString(),
       source: "dev-mock",
     };
@@ -75,6 +82,10 @@ export const authService = {
 };
 
 /** Where a verified role lands after sign-in. Unbuilt workspaces return null. */
-export function homeForRole(role: Role): "/admin" | null {
-  return role === "super_admin" ? "/admin" : null;
+export type WorkspaceHome = "/admin" | "/editor" | "/coordinator";
+export function homeForRole(role: Role): WorkspaceHome | null {
+  if (role === "super_admin") return "/admin";
+  if (role === "editor") return "/editor";
+  if (role === "coordinator") return "/coordinator";
+  return null;
 }
