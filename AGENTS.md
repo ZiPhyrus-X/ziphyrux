@@ -8,3 +8,9 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Ziphyrus X decisions
+- Login UI talks only to `authService` (src/lib/auth/service.ts); swap the adapter via `VITE_AUTH_MODE=api` — keeps the backend replaceable and the browser never picks its role.
+- Landing-page content and illustrative data live in src/data/site.ts; admin mock data in src/features/super-admin/mock-data.ts — so placeholders are easy to find and replace.
+- Secondary Super Admin modules render from one route (/admin/m/$module) keyed by src/features/super-admin/nav.ts — one place to add modules.
+- Theme is a `dark`/`light` class on <html>, set pre-paint by THEME_SCRIPT — avoids a flash of the wrong theme.
