@@ -1,24 +1,46 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { DemoProvider } from "@/components/landing/demo-dialog";
+import { Navigation } from "@/components/landing/navigation";
+import { Hero } from "@/components/landing/hero";
+import { IntelligenceLoop, OpeningStatement, PlatformOverview } from "@/components/landing/story";
+import {
+  AudienceSection, FinalCTA, Footer, InstitutionSection, IntelligenceVisualization,
+  PlacementIntelligence, PlatformPrinciples, StudentJourney,
+} from "@/components/landing/sections";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+const TITLE = "Ziphyrus X — Make employability measurable";
+const DESC = "College employability intelligence: connect learning, coding, assessments, skills and placement readiness in one evidence-driven system.";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: TITLE },
+      { name: "description", content: DESC },
+      { property: "og:title", content: TITLE },
+      { property: "og:description", content: DESC },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <DemoProvider>
+      <Navigation />
+      <main>
+        <Hero />
+        <OpeningStatement />
+        <PlatformOverview />
+        <IntelligenceLoop />
+        <AudienceSection />
+        <StudentJourney />
+        <IntelligenceVisualization />
+        <PlacementIntelligence />
+        <InstitutionSection />
+        <PlatformPrinciples />
+        <FinalCTA />
+      </main>
+      <Footer />
+    </DemoProvider>
   );
 }
