@@ -39,8 +39,8 @@ export function AudienceSection() {
           <div className="relative min-h-[20rem] border border-line bg-surface p-8 md:p-12 lg:col-span-7">
             <AnimatePresence mode="wait">
               <motion.div key={i} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.45, ease: EASE }}>
-                <p className="eyebrow text-accent">Workspace / {AUDIENCES[i].k}</p>
-                <p className="mt-6 font-display text-4xl leading-tight md:text-5xl">{AUDIENCES[i].d}</p>
+                <p className="eyebrow text-accent">Workspace / {AUDIENCES[i]!.k}</p>
+                <p className="mt-6 font-display text-4xl leading-tight md:text-5xl">{AUDIENCES[i]!.d}</p>
                 <div className="mt-10 grid grid-cols-3 gap-px bg-border" aria-hidden>
                   {["Evidence", "Context", "Action"].map((t, j) => (
                     <div key={t} className="bg-surface p-4">
@@ -82,12 +82,12 @@ export function StudentJourney() {
         <div className="mt-10 grid gap-6 border border-line p-8 md:grid-cols-[1fr_auto] md:items-end md:p-10">
           <AnimatePresence mode="wait">
             <motion.div key={s} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.35, ease: EASE }}>
-              <p className="eyebrow">{JOURNEY[s].k}</p>
-              <p className="mt-3 font-display text-3xl md:text-4xl">{JOURNEY[s].v}</p>
+              <p className="eyebrow">{JOURNEY[s]!.k}</p>
+              <p className="mt-3 font-display text-3xl md:text-4xl">{JOURNEY[s]!.v}</p>
             </motion.div>
           </AnimatePresence>
           <div className="text-right">
-            <p className="font-mono text-2xl text-accent">{JOURNEY[s].m}</p>
+            <p className="font-mono text-2xl text-accent">{JOURNEY[s]!.m}</p>
             <p className="mt-2 eyebrow">Illustrative sample</p>
           </div>
         </div>
@@ -169,7 +169,7 @@ export function PlacementIntelligence() {
         </div>
         <AnimatePresence mode="wait">
           <motion.p key={s} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="mt-10 max-w-3xl text-xl leading-relaxed">
-            {PLACEMENT[s].d}
+            {PLACEMENT[s]!.d}
           </motion.p>
         </AnimatePresence>
         <p className="mt-6 text-sm text-muted-foreground">Ziphyrus X informs preparation. It does not guarantee jobs or placements.</p>

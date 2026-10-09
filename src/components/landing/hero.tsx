@@ -37,7 +37,7 @@ function HeroGraphic() {
         <rect key={i} x={20 + ((i * 53) % 150)} y={200 + ((i * 37) % 90)} width="3" height="3" className="hg-node fill-muted-foreground" opacity={0.5} />
       ))}
       <path d={d} pathLength={1} strokeDasharray="1" className="hg-path fill-none stroke-accent" strokeWidth="1.5" />
-      {pts.map(([x, y], i) => (
+      {pts.map(([x = 0, y = 0], i) => (
         <g key={i}>
           <circle cx={x} cy={y} r="6" className="hg-pulse fill-none stroke-accent" />
           <circle cx={x} cy={y} r={i === pts.length - 1 ? 7 : 4.5} className={`hg-node ${i === pts.length - 1 ? "fill-accent" : "fill-background stroke-foreground"}`} strokeWidth="1.5" />

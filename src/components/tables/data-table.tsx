@@ -104,6 +104,6 @@ const TONE: Record<string, string> = {
   pending: "text-warning border-warning/40", degraded: "text-warning border-warning/40", running: "text-warning border-warning/40", queued: "text-muted-foreground border-border", draft: "text-muted-foreground border-border", warning: "text-warning border-warning/40",
   inactive: "text-muted-foreground border-border", archived: "text-muted-foreground border-border", failed: "text-destructive border-destructive/40", down: "text-destructive border-destructive/40",
 };
-export function StatusBadge({ s }: { s: string }) {
+export function StatusBadge({ s = "" }: { s?: string }) {
   return <span className={cn("inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[0.7rem] capitalize", TONE[s] ?? "border-border")}><span className="h-1.5 w-1.5 rounded-full bg-current" />{s}</span>;
 }

@@ -21,7 +21,7 @@ export function OpeningStatement() {
       gsap.utils.toArray<HTMLElement>(".frag").forEach((el, i) => {
         gsap.fromTo(
           el,
-          { x: scatter[i].x, y: scatter[i].y, rotate: scatter[i].r, opacity: 0.45 },
+          { x: scatter[i]!.x, y: scatter[i]!.y, rotate: scatter[i]!.r, opacity: 0.45 },
           { x: 0, y: 0, rotate: 0, opacity: 1, ease: "none", scrollTrigger: { trigger: ".frag-wrap", start: "top 85%", end: "center 50%", scrub: 0.8 } },
         );
       });
@@ -153,8 +153,8 @@ export function IntelligenceLoop() {
             </h2>
             <div className="mt-10 min-h-[7rem] border-l-2 border-accent pl-5">
               <p className="eyebrow">Frame {String(step + 1).padStart(2, "0")} / 06</p>
-              <p className="mt-2 font-display text-3xl">{LOOP[step].k}</p>
-              <p className="mt-1 text-muted-foreground">{LOOP[step].d}</p>
+              <p className="mt-2 font-display text-3xl">{LOOP[step]!.k}</p>
+              <p className="mt-1 text-muted-foreground">{LOOP[step]!.d}</p>
             </div>
           </div>
           <div className="lg:col-span-7">
@@ -164,13 +164,13 @@ export function IntelligenceLoop() {
               <circle cx="200" cy="200" r="70" className="fill-none stroke-border" strokeDasharray="2 5" />
               <text x="200" y="196" textAnchor="middle" className="fill-foreground font-display" fontSize="26">Ziphyrus</text>
               <text x="200" y="218" textAnchor="middle" className="fill-muted-foreground font-mono" fontSize="9">continuous evidence model</text>
-              {nodes.map(([x, y], i) => {
+              {nodes.map(([x = 0, y = 0], i) => {
                 const on = i <= step;
                 return (
                   <g key={i} style={{ transition: "opacity .4s" }} opacity={on ? 1 : 0.35}>
                     <circle cx={x} cy={y} r={i === step ? 11 : 7} className={on ? "fill-accent" : "fill-background stroke-line"} style={{ transition: "r .4s" }} />
                     <text x={x} y={y + (y < 200 ? -20 : 30)} textAnchor="middle" className="fill-foreground font-mono" fontSize="11">
-                      {LOOP[i].k}
+                      {LOOP[i]!.k}
                     </text>
                   </g>
                 );

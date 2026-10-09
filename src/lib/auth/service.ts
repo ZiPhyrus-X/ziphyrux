@@ -50,7 +50,7 @@ const devMockAdapter: AuthAdapter = {
   },
 };
 
-export const AUTH_MODE: "dev-mock" | "api" = import.meta.env.VITE_AUTH_MODE === "api" ? "api" : "dev-mock";
+export const AUTH_MODE: "dev-mock" | "api" = import.meta.env["VITE_AUTH_MODE"] === "api" ? "api" : "dev-mock";
 const adapter = AUTH_MODE === "api" ? apiAdapter : devMockAdapter;
 
 export const authService = {
