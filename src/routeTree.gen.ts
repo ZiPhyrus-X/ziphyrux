@@ -17,6 +17,7 @@ import { Route as AdminCollegesRouteImport } from './routes/admin.colleges'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as LegalDocRouteImport } from './routes/legal.$doc'
 import { Route as AdminCollegesIdRouteImport } from './routes/admin.colleges_.$id'
+import { Route as AdminMModuleRouteImport } from './routes/admin.m.$module'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +59,11 @@ const AdminCollegesIdRoute = AdminCollegesIdRouteImport.update({
   path: '/colleges/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMModuleRoute = AdminMModuleRouteImport.update({
+  id: '/m/$module',
+  path: '/m/$module',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/legal/$doc': typeof LegalDocRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/colleges/$id': typeof AdminCollegesIdRoute
+  '/admin/m/$module': typeof AdminMModuleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/legal/$doc': typeof LegalDocRoute
   '/admin': typeof AdminIndexRoute
   '/admin/colleges/$id': typeof AdminCollegesIdRoute
+  '/admin/m/$module': typeof AdminMModuleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/legal/$doc': typeof LegalDocRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/colleges_/$id': typeof AdminCollegesIdRoute
+  '/admin/m/$module': typeof AdminMModuleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/legal/$doc'
     | '/admin/'
     | '/admin/colleges/$id'
+    | '/admin/m/$module'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/legal/$doc'
     | '/admin'
     | '/admin/colleges/$id'
+    | '/admin/m/$module'
   id:
     | '__root__'
     | '/'
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/legal/$doc'
     | '/admin/'
     | '/admin/colleges_/$id'
+    | '/admin/m/$module'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -186,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCollegesIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/m/$module': {
+      id: '/admin/m/$module'
+      path: '/m/$module'
+      fullPath: '/admin/m/$module'
+      preLoaderRoute: typeof AdminMModuleRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -194,6 +213,7 @@ interface AdminRouteChildren {
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCollegesIdRoute: typeof AdminCollegesIdRoute
+  AdminMModuleRoute: typeof AdminMModuleRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -201,6 +221,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCollegesIdRoute: AdminCollegesIdRoute,
+  AdminMModuleRoute: AdminMModuleRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
