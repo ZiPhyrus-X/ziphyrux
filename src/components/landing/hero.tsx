@@ -56,7 +56,7 @@ function HeroGraphic() {
 export function Hero() {
   const demo = useDemo();
   return (
-    <section className="relative flex min-h-[100svh] flex-col justify-end overflow-hidden pt-28 pb-12">
+    <section className="relative flex min-h-[100svh] flex-col justify-center overflow-hidden pt-28 pb-16">
       <div className="pointer-events-none absolute inset-0 grid-lines opacity-40" aria-hidden />
       <div className="container-x relative">
         <motion.div
@@ -69,14 +69,15 @@ export function Hero() {
           <span className="eyebrow hidden sm:inline">Data → Analysis → Decision → Action → Outcomes</span>
         </motion.div>
 
-        <div className="grid items-end gap-12 lg:grid-cols-12">
-          <div className="lg:col-span-7">
-            <LineReveal
-              as="h1"
-              className="font-display text-hero"
-              delay={0.25}
-              lines={["Make", <>employability <em className="text-accent">measurable.</em></>]}
-            />
+        <LineReveal
+          as="h1"
+          immediate
+          className="font-display text-hero"
+          delay={0.25}
+          lines={["Make employability", <em className="text-accent">measurable.</em>]}
+        />
+        <div className="mt-6 grid items-end gap-12 lg:grid-cols-12">
+          <div className="lg:col-span-6">
             <motion.p
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -105,8 +106,8 @@ export function Hero() {
               </a>
             </motion.div>
           </div>
-          <div className="lg:col-span-5">
-            <div className="relative border-l border-border pl-6">
+          <div className="lg:col-span-5 lg:col-start-8">
+            <div className="relative mt-6 border-l border-border pl-6">
               <span className="eyebrow absolute -top-6 left-6">fig. 01 — the path of evidence</span>
               <HeroGraphic />
             </div>
