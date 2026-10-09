@@ -195,6 +195,15 @@
   text-transform: uppercase;
   color: var(--color-muted-foreground);
 }
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
 @utility container-x {
   width: 100%;
   max-width: 88rem;
