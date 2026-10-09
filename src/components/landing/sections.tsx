@@ -154,22 +154,24 @@ export function PlacementIntelligence() {
       <div className="container-x">
         <SectionLabel n="07">Placement intelligence</SectionLabel>
         <LineReveal className="mt-10 font-display text-statement" lines={["Readiness is", <em className="text-accent">more than a score.</em>]} />
-        <div className="mt-16 grid gap-px bg-border md:grid-cols-7">
+        <div className="mt-16 grid grid-cols-2 gap-px bg-border sm:grid-cols-4 xl:grid-cols-7">
           {PLACEMENT.map((p, i) => (
-            <button
+            <Button
               key={p.k}
+              variant="ghost"
+              aria-pressed={s === i}
               onClick={() => setS(i)}
               onMouseEnter={() => setS(i)}
-              className={cn("flex min-h-[8rem] flex-col justify-between p-5 text-left transition-colors", s === i ? "bg-foreground text-background" : "bg-surface hover:bg-muted")}
+              className={cn("h-auto min-h-[9rem] min-w-0 flex-col items-start justify-between gap-6 whitespace-normal rounded-none p-4 text-left", s === i ? "bg-foreground text-background hover:bg-foreground hover:text-background" : "bg-surface hover:bg-muted")}
             >
               <span className="font-mono text-xs opacity-60">{String(i + 1).padStart(2, "0")}</span>
-              <span className="font-display text-2xl leading-tight">{p.k}</span>
-            </button>
+              <span className="w-full font-display text-xl leading-tight tracking-normal 2xl:text-2xl">{p.k}</span>
+            </Button>
           ))}
         </div>
         <AnimatePresence mode="wait">
           <motion.p key={s} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="mt-10 max-w-3xl text-xl leading-relaxed">
-            {PLACEMENT[s]!.d}
+            {PLACEMENT[s]?.d}
           </motion.p>
         </AnimatePresence>
         <p className="mt-6 text-sm text-muted-foreground">Ziphyrus X informs preparation. It does not guarantee jobs or placements.</p>
