@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/admin/colleges")({
-  head: () => ({ meta: [{ title: "Colleges — Ziphyrus X Super Admin" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Ziphyrus - X" }, { name: "robots", content: "noindex" }] }),
   component: Colleges,
 });
 
