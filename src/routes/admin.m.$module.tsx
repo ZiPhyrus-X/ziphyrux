@@ -26,7 +26,7 @@ export const Route = createFileRoute("/admin/m/$module")({
     if (!(params.module in DESC)) throw notFound();
     return { slug: params.module as ModuleSlug };
   },
-  head: () => ({ meta: [{ title: "Super Admin — Ziphyrus X" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Ziphyrus - X" }, { name: "robots", content: "noindex" }] }),
   component: ModulePage,
 });
 

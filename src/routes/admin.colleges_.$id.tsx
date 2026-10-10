@@ -11,7 +11,7 @@ export const Route = createFileRoute("/admin/colleges_/$id")({
     if (!c) throw notFound();
     return c;
   },
-  head: () => ({ meta: [{ title: "College detail — Ziphyrus X Super Admin" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Ziphyrus - X" }, { name: "robots", content: "noindex" }] }),
   notFoundComponent: () => <p className="text-muted-foreground">College not found. <Link to="/admin/colleges" className="text-accent">Back to colleges</Link></p>,
   component: CollegeDetail,
 });

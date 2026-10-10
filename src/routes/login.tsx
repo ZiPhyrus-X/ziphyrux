@@ -17,7 +17,7 @@ import { LOOP } from "@/data/site";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Sign in — Ziphyrus X ClassRoom" },
+      { title: "Ziphyrus - X" },
       { name: "description", content: "Sign in to Ziphyrus X with your registered ID." },
       { property: "og:title", content: "Sign in — Ziphyrus X ClassRoom" },
       { property: "og:description", content: "Sign in to the Ziphyrus X employability intelligence platform." },

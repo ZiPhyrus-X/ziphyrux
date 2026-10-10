@@ -6,7 +6,7 @@ import { Metric, PageHeader, Panel } from "@/features/super-admin/page";
 import { StatusBadge } from "@/components/tables/data-table";
 
 export const Route = createFileRoute("/admin/")({
-  head: () => ({ meta: [{ title: "Overview — Ziphyrus X Super Admin" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Ziphyrus - X" }, { name: "robots", content: "noindex" }] }),
   component: Overview,
 });
 

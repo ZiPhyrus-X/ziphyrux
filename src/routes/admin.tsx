@@ -12,7 +12,7 @@ import { ADMIN_NAV } from "@/features/super-admin/nav";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Super Admin — Ziphyrus X" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Ziphyrus - X" }, { name: "robots", content: "noindex" }] }),
   component: AdminLayout,
 });
 
