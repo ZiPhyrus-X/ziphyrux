@@ -17,6 +17,15 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminCollegesRouteImport } from './routes/admin.colleges'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as EditorIndexRouteImport } from './routes/editor.index'
+import { Route as EditorAccountRouteImport } from './routes/editor.account'
+import { Route as EditorAssessmentsRouteImport } from './routes/editor.assessments'
+import { Route as EditorContentRouteImport } from './routes/editor.content'
+import { Route as EditorFeaturesRouteImport } from './routes/editor.features'
+import { Route as EditorHistoryRouteImport } from './routes/editor.history'
+import { Route as EditorNotificationsRouteImport } from './routes/editor.notifications'
+import { Route as EditorOverridesRouteImport } from './routes/editor.overrides'
+import { Route as EditorQuestionsRouteImport } from './routes/editor.questions'
 import { Route as LegalDocRouteImport } from './routes/legal.$doc'
 import { Route as AdminCollegesIdRouteImport } from './routes/admin.colleges_.$id'
 import { Route as AdminMModuleRouteImport } from './routes/admin.m.$module'
@@ -61,6 +70,51 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
+const EditorIndexRoute = EditorIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EditorRoute,
+} as any)
+const EditorAccountRoute = EditorAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => EditorRoute,
+} as any)
+const EditorAssessmentsRoute = EditorAssessmentsRouteImport.update({
+  id: '/assessments',
+  path: '/assessments',
+  getParentRoute: () => EditorRoute,
+} as any)
+const EditorContentRoute = EditorContentRouteImport.update({
+  id: '/content',
+  path: '/content',
+  getParentRoute: () => EditorRoute,
+} as any)
+const EditorFeaturesRoute = EditorFeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => EditorRoute,
+} as any)
+const EditorHistoryRoute = EditorHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => EditorRoute,
+} as any)
+const EditorNotificationsRoute = EditorNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => EditorRoute,
+} as any)
+const EditorOverridesRoute = EditorOverridesRouteImport.update({
+  id: '/overrides',
+  path: '/overrides',
+  getParentRoute: () => EditorRoute,
+} as any)
+const EditorQuestionsRoute = EditorQuestionsRouteImport.update({
+  id: '/questions',
+  path: '/questions',
+  getParentRoute: () => EditorRoute,
+} as any)
 const LegalDocRoute = LegalDocRouteImport.update({
   id: '/legal/$doc',
   path: '/legal/$doc',
@@ -81,24 +135,41 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/coordinator': typeof CoordinatorRoute
-  '/editor': typeof EditorRoute
+  '/editor': typeof EditorRouteWithChildren
   '/login': typeof LoginRoute
   '/admin/colleges': typeof AdminCollegesRoute
   '/admin/users': typeof AdminUsersRoute
+  '/editor/account': typeof EditorAccountRoute
+  '/editor/assessments': typeof EditorAssessmentsRoute
+  '/editor/content': typeof EditorContentRoute
+  '/editor/features': typeof EditorFeaturesRoute
+  '/editor/history': typeof EditorHistoryRoute
+  '/editor/notifications': typeof EditorNotificationsRoute
+  '/editor/overrides': typeof EditorOverridesRoute
+  '/editor/questions': typeof EditorQuestionsRoute
   '/legal/$doc': typeof LegalDocRoute
   '/admin/': typeof AdminIndexRoute
+  '/editor/': typeof EditorIndexRoute
   '/admin/colleges/$id': typeof AdminCollegesIdRoute
   '/admin/m/$module': typeof AdminMModuleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/coordinator': typeof CoordinatorRoute
-  '/editor': typeof EditorRoute
   '/login': typeof LoginRoute
   '/admin/colleges': typeof AdminCollegesRoute
   '/admin/users': typeof AdminUsersRoute
+  '/editor/account': typeof EditorAccountRoute
+  '/editor/assessments': typeof EditorAssessmentsRoute
+  '/editor/content': typeof EditorContentRoute
+  '/editor/features': typeof EditorFeaturesRoute
+  '/editor/history': typeof EditorHistoryRoute
+  '/editor/notifications': typeof EditorNotificationsRoute
+  '/editor/overrides': typeof EditorOverridesRoute
+  '/editor/questions': typeof EditorQuestionsRoute
   '/legal/$doc': typeof LegalDocRoute
   '/admin': typeof AdminIndexRoute
+  '/editor': typeof EditorIndexRoute
   '/admin/colleges/$id': typeof AdminCollegesIdRoute
   '/admin/m/$module': typeof AdminMModuleRoute
 }
@@ -107,12 +178,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/coordinator': typeof CoordinatorRoute
-  '/editor': typeof EditorRoute
+  '/editor': typeof EditorRouteWithChildren
   '/login': typeof LoginRoute
   '/admin/colleges': typeof AdminCollegesRoute
   '/admin/users': typeof AdminUsersRoute
+  '/editor/account': typeof EditorAccountRoute
+  '/editor/assessments': typeof EditorAssessmentsRoute
+  '/editor/content': typeof EditorContentRoute
+  '/editor/features': typeof EditorFeaturesRoute
+  '/editor/history': typeof EditorHistoryRoute
+  '/editor/notifications': typeof EditorNotificationsRoute
+  '/editor/overrides': typeof EditorOverridesRoute
+  '/editor/questions': typeof EditorQuestionsRoute
   '/legal/$doc': typeof LegalDocRoute
   '/admin/': typeof AdminIndexRoute
+  '/editor/': typeof EditorIndexRoute
   '/admin/colleges_/$id': typeof AdminCollegesIdRoute
   '/admin/m/$module': typeof AdminMModuleRoute
 }
@@ -126,20 +206,37 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/colleges'
     | '/admin/users'
+    | '/editor/account'
+    | '/editor/assessments'
+    | '/editor/content'
+    | '/editor/features'
+    | '/editor/history'
+    | '/editor/notifications'
+    | '/editor/overrides'
+    | '/editor/questions'
     | '/legal/$doc'
     | '/admin/'
+    | '/editor/'
     | '/admin/colleges/$id'
     | '/admin/m/$module'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/coordinator'
-    | '/editor'
     | '/login'
     | '/admin/colleges'
     | '/admin/users'
+    | '/editor/account'
+    | '/editor/assessments'
+    | '/editor/content'
+    | '/editor/features'
+    | '/editor/history'
+    | '/editor/notifications'
+    | '/editor/overrides'
+    | '/editor/questions'
     | '/legal/$doc'
     | '/admin'
+    | '/editor'
     | '/admin/colleges/$id'
     | '/admin/m/$module'
   id:
@@ -151,8 +248,17 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/colleges'
     | '/admin/users'
+    | '/editor/account'
+    | '/editor/assessments'
+    | '/editor/content'
+    | '/editor/features'
+    | '/editor/history'
+    | '/editor/notifications'
+    | '/editor/overrides'
+    | '/editor/questions'
     | '/legal/$doc'
     | '/admin/'
+    | '/editor/'
     | '/admin/colleges_/$id'
     | '/admin/m/$module'
   fileRoutesById: FileRoutesById
@@ -161,7 +267,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   CoordinatorRoute: typeof CoordinatorRoute
-  EditorRoute: typeof EditorRoute
+  EditorRoute: typeof EditorRouteWithChildren
   LoginRoute: typeof LoginRoute
   LegalDocRoute: typeof LegalDocRoute
 }
@@ -224,6 +330,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/editor/': {
+      id: '/editor/'
+      path: '/'
+      fullPath: '/editor/'
+      preLoaderRoute: typeof EditorIndexRouteImport
+      parentRoute: typeof EditorRoute
+    }
+    '/editor/account': {
+      id: '/editor/account'
+      path: '/account'
+      fullPath: '/editor/account'
+      preLoaderRoute: typeof EditorAccountRouteImport
+      parentRoute: typeof EditorRoute
+    }
+    '/editor/assessments': {
+      id: '/editor/assessments'
+      path: '/assessments'
+      fullPath: '/editor/assessments'
+      preLoaderRoute: typeof EditorAssessmentsRouteImport
+      parentRoute: typeof EditorRoute
+    }
+    '/editor/content': {
+      id: '/editor/content'
+      path: '/content'
+      fullPath: '/editor/content'
+      preLoaderRoute: typeof EditorContentRouteImport
+      parentRoute: typeof EditorRoute
+    }
+    '/editor/features': {
+      id: '/editor/features'
+      path: '/features'
+      fullPath: '/editor/features'
+      preLoaderRoute: typeof EditorFeaturesRouteImport
+      parentRoute: typeof EditorRoute
+    }
+    '/editor/history': {
+      id: '/editor/history'
+      path: '/history'
+      fullPath: '/editor/history'
+      preLoaderRoute: typeof EditorHistoryRouteImport
+      parentRoute: typeof EditorRoute
+    }
+    '/editor/notifications': {
+      id: '/editor/notifications'
+      path: '/notifications'
+      fullPath: '/editor/notifications'
+      preLoaderRoute: typeof EditorNotificationsRouteImport
+      parentRoute: typeof EditorRoute
+    }
+    '/editor/overrides': {
+      id: '/editor/overrides'
+      path: '/overrides'
+      fullPath: '/editor/overrides'
+      preLoaderRoute: typeof EditorOverridesRouteImport
+      parentRoute: typeof EditorRoute
+    }
+    '/editor/questions': {
+      id: '/editor/questions'
+      path: '/questions'
+      fullPath: '/editor/questions'
+      preLoaderRoute: typeof EditorQuestionsRouteImport
+      parentRoute: typeof EditorRoute
+    }
     '/legal/$doc': {
       id: '/legal/$doc'
       path: '/legal/$doc'
@@ -266,11 +435,38 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface EditorRouteChildren {
+  EditorAccountRoute: typeof EditorAccountRoute
+  EditorAssessmentsRoute: typeof EditorAssessmentsRoute
+  EditorContentRoute: typeof EditorContentRoute
+  EditorFeaturesRoute: typeof EditorFeaturesRoute
+  EditorHistoryRoute: typeof EditorHistoryRoute
+  EditorNotificationsRoute: typeof EditorNotificationsRoute
+  EditorOverridesRoute: typeof EditorOverridesRoute
+  EditorQuestionsRoute: typeof EditorQuestionsRoute
+  EditorIndexRoute: typeof EditorIndexRoute
+}
+
+const EditorRouteChildren: EditorRouteChildren = {
+  EditorAccountRoute: EditorAccountRoute,
+  EditorAssessmentsRoute: EditorAssessmentsRoute,
+  EditorContentRoute: EditorContentRoute,
+  EditorFeaturesRoute: EditorFeaturesRoute,
+  EditorHistoryRoute: EditorHistoryRoute,
+  EditorNotificationsRoute: EditorNotificationsRoute,
+  EditorOverridesRoute: EditorOverridesRoute,
+  EditorQuestionsRoute: EditorQuestionsRoute,
+  EditorIndexRoute: EditorIndexRoute,
+}
+
+const EditorRouteWithChildren =
+  EditorRoute._addFileChildren(EditorRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   CoordinatorRoute: CoordinatorRoute,
-  EditorRoute: EditorRoute,
+  EditorRoute: EditorRouteWithChildren,
   LoginRoute: LoginRoute,
   LegalDocRoute: LegalDocRoute,
 }
