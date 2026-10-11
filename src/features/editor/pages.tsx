@@ -269,7 +269,7 @@ export function AssessmentsPage() {
 
 function QuestionPicker({ questions, value, onChange }: { questions: { id: string; text: string; status: string }[]; value: string[]; onChange: (v: string[]) => void }) {
   const usable = questions.filter((q) => q.status === "published");
-  const move = (i: number, d: number) => { const v = [...value]; const [x] = v.splice(i, 1); v.splice(i + d, 0, x); onChange(v); };
+  const move = (i: number, d: number) => { const v = [...value]; const [x] = v.splice(i, 1); v.splice(i + d, 0, x!); onChange(v); };
   return (
     <div className="space-y-3">
       <p className="text-sm">Published questions</p>
