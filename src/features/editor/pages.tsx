@@ -23,7 +23,7 @@ function useAct<A>(fn: (a: A) => Promise<unknown>, ok: string) {
   const qc = useQueryClient();
   return useMutation({ mutationFn: fn, onSuccess: () => { qc.invalidateQueries({ queryKey: ["editor"] }); toast.success(ok); } });
 }
-function Load<T>({ q, children }: { q: { data?: T; isLoading: boolean; error: unknown; refetch: () => void }; children: (d: T) => React.ReactNode }) {
+function Load<T>({ q, children }: { q: { data: T | undefined; isLoading: boolean; error: unknown; refetch: () => void }; children: (d: T) => React.ReactNode }) {
   if (q.isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (q.error || !q.data) return <ErrorState message="The data could not be loaded." onRetry={q.refetch} />;
   return <>{children(q.data)}</>;
@@ -332,7 +332,7 @@ export function NotificationsPage() {
   const save = useAct((n: { id?: string; title: string; message: string; target: string }) => svc.saveNotification(n), "Draft saved");
   return (
     <>
-      <PageHeader title="Notifications" desc="Draft, preview and track notifications. Targeting and delivery are validated by the backend." actions={<Button onClick={() => setEdit({ title: "", message: "", target: TARGETS[0] })}><Plus /> New notification</Button>} />
+      <PageHeader title="Notifications" desc="Draft, preview and track notifications. Targeting and delivery are validated by the backend." actions={<Button onClick={() => setEdit({ title: "", message: "", target: TARGETS[0]! })}><Plus /> New notification</Button>} />
       <Note />
       <Load q={q}>{(rows) => rows.length ? (
         <DataTable rows={rows} searchKeys={["title"]} filterKey="status" onRowClick={(r) => setEdit(r)}
@@ -343,12 +343,12 @@ export function NotificationsPage() {
           <DialogHeader><DialogTitle>{edit.id ? "Edit notification" : "New notification"}</DialogTitle></DialogHeader>
           <Field label="Title"><Input value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} disabled={!!edit.status && edit.status !== "draft"} /></Field>
           <Field label="Message"><Textarea value={edit.message} onChange={(e) => setEdit({ ...edit, message: e.target.value })} disabled={!!edit.status && edit.status !== "draft"} /></Field>
-          <Field label="Audience"><Select value={edit.target} onValueChange={(v) => setEdit({ ...edit, target: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{TARGETS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></Field>
+          <Field label="Audience"><Select value={edit.target ?? TARGETS[0]!} onValueChange={(v) => setEdit({ ...edit, target: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{TARGETS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></Field>
           <div className="border border-dashed border-border p-4"><p className="eyebrow">Preview</p><p className="mt-2 font-medium">{edit.title || "Title"}</p><p className="text-sm text-muted-foreground">{edit.message || "Message"}</p><p className="mt-2 font-mono text-xs text-muted-foreground">To: {edit.target}</p></div>
           {edit.history && <details className="text-sm"><summary className="cursor-pointer text-muted-foreground">History</summary><div className="mt-3"><HistoryList items={edit.history} /></div></details>}
           {err && <p className="text-sm text-destructive" role="alert">{err}</p>}
           <p className="text-xs text-muted-foreground">Sending is not available until the delivery service is connected.</p>
-          <DialogFooter><Button disabled={!edit.title?.trim() || !edit.message?.trim() || save.isPending} onClick={async () => { try { await save.mutateAsync({ id: edit.id, title: edit.title!, message: edit.message!, target: edit.target! }); setEdit(null); } catch (e) { setErr((e as Error).message); } }}>Save draft</Button></DialogFooter>
+          <DialogFooter><Button disabled={!edit.title?.trim() || !edit.message?.trim() || save.isPending} onClick={async () => { try { await save.mutateAsync({ ...(edit.id ? { id: edit.id } : {}), title: edit.title!, message: edit.message!, target: edit.target! }); setEdit(null); } catch (e) { setErr((e as Error).message); } }}>Save draft</Button></DialogFooter>
         </DialogContent>}
       </Dialog>
     </>

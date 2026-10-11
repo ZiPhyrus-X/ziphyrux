@@ -80,7 +80,7 @@ export function HistoryList({ items }: { items: HistoryEntry[] }) {
   );
 }
 
-export function Field({ label, children, error }: { label: string; children: ReactNode; error?: string }) {
+export function Field({ label, children, error }: { label: string; children: ReactNode; error?: string | undefined }) {
   return <div className="space-y-1.5"><Label>{label}</Label>{children}{error && <p className="text-xs text-destructive">{error}</p>}</div>;
 }
 export function KV({ k, v }: { k: string; v: ReactNode }) {

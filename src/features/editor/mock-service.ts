@@ -19,7 +19,7 @@ export interface CourseVersion { version: number; status: ContentStatus; modules
 export interface Course { id: string; title: string; skills: string[]; updatedAt: string; versions: CourseVersion[]; history: HistoryEntry[] }
 export type Domain = "Technical" | "Aptitude" | "Verbal" | "Soft Skills";
 export type QType = "MCQ" | "Short Answer" | "Long Answer";
-export interface Question { id: string; domain: Domain; type: QType; text: string; options?: string[]; correct?: number; answer?: string; explanation?: string; status: ContentStatus; version: number; source: "Manual" | "Duplicate" | "AI-assisted"; updatedAt: string }
+export interface Question { id: string; domain: Domain; type: QType; text: string; options?: string[] | undefined; correct?: number | undefined; answer?: string | undefined; explanation?: string | undefined; status: ContentStatus; version: number; source: "Manual" | "Duplicate" | "AI-assisted"; updatedAt: string }
 export interface AssessmentVersion { version: number; status: ContentStatus; questionIds: string[]; createdAt: string }
 export interface Assessment { id: string; title: string; durationMin: number; versions: AssessmentVersion[]; history: HistoryEntry[] }
 export interface Notification { id: string; title: string; message: string; target: string; status: "draft" | "pending" | "sent"; updatedAt: string; history: HistoryEntry[] }

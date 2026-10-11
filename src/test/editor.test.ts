@@ -18,7 +18,7 @@ describe("editor rules", () => {
   it("editing a published course creates a new version, keeping the old one", async () => {
     const c = await editorService.newCourseVersion("c-1", "change wording");
     expect(c.versions).toHaveLength(2);
-    expect(c.versions[0].status).toBe("published");
+    expect(c.versions[0]?.status).toBe("published");
     expect(latest(c.versions).status).toBe("draft");
   });
 });
