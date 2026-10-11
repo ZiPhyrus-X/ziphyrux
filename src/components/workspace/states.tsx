@@ -64,7 +64,7 @@ export function ReasonDialog({ open, onOpenChange, title, description, confirmLa
   );
 }
 
-export interface HistoryEntry { at: string; by: string; action: string; reason?: string }
+export interface HistoryEntry { at: string; by: string; action: string; reason?: string | undefined }
 export function HistoryList({ items }: { items: HistoryEntry[] }) {
   if (!items.length) return <p className="text-sm text-muted-foreground">No history recorded.</p>;
   return (

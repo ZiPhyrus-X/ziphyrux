@@ -67,7 +67,7 @@ const find = <T extends { id: string }>(list: T[], id: string) => {
   if (!x) throw new Error("Record not found.");
   return x;
 };
-export const latest = <V extends { version: number }>(v: V[]) => v[v.length - 1];
+export const latest = <V extends { version: number }>(v: V[]): V => v[v.length - 1]!;
 
 /** MCQ rule: exactly four non-empty options and one correct answer. */
 export function validateQuestion(q: Pick<Question, "type" | "text" | "options" | "correct" | "answer" | "explanation" | "domain">): string[] {
