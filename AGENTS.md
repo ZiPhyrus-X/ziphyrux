@@ -14,3 +14,4 @@
 - Landing-page content and illustrative data live in src/data/site.ts; admin mock data in src/features/super-admin/mock-data.ts — so placeholders are easy to find and replace.
 - Secondary Super Admin modules render from one route (/admin/m/$module) keyed by src/features/super-admin/nav.ts — one place to add modules.
 - Theme is a `dark`/`light` class on <html>, set pre-paint by THEME_SCRIPT — avoids a flash of the wrong theme.
+- Role workspaces are a layout route (e.g. /editor) rendering WorkspaceShell with a nav config in src/features/<role>/nav.ts; data goes through src/features/<role>/mock-service.ts until the API exists — one swap point per role.
