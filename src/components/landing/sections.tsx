@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EASE, LineReveal, Reveal, SectionLabel } from "@/animations/motion";
 import { AUDIENCES, JOURNEY, NAV, PLACEMENT, PRINCIPLES, SITE, SKILLS } from "@/data/site";
 import { Wordmark } from "@/components/brand";
-import { useDemo } from "./demo-dialog";
 import { cn } from "@/lib/utils";
 import GlyphWall from "./glyph-wall";
 
@@ -255,19 +254,10 @@ export function PlatformPrinciples() {
 
 /* SECTION 12 — Final CTA */
 export function FinalCTA() {
-  const demo = useDemo();
   return (
     <section aria-label="Ziphyrus X glyph wall" className="border-t border-border bg-background">
       <div className="h-[26rem] w-full md:h-[36rem]">
         <GlyphWall />
-      </div>
-      <div className="container-x flex flex-wrap justify-center gap-3 py-8">
-            <Button size="xl" onClick={demo}>
-              Request a Demo <ArrowRight />
-            </Button>
-            <Button asChild size="xl" variant="outline">
-              <Link to="/login">Explore ClassRoom</Link>
-            </Button>
       </div>
     </section>
   );
