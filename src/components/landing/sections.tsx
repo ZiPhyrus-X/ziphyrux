@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EASE, LineReveal, Reveal, SectionLabel } from "@/animations/motion";
 import { AUDIENCES, JOURNEY, NAV, PLACEMENT, PRINCIPLES, SITE, SKILLS } from "@/data/site";
 import { Wordmark } from "@/components/brand";
-import { useDemo } from "./demo-dialog";
 import { cn } from "@/lib/utils";
+import GlyphWall from "./glyph-wall";
 
 /* SECTION 06 — Ecosystem */
 export function AudienceSection() {
@@ -254,22 +254,10 @@ export function PlatformPrinciples() {
 
 /* SECTION 12 — Final CTA */
 export function FinalCTA() {
-  const demo = useDemo();
   return (
-    <section className="border-t border-border bg-foreground py-28 text-background md:py-40">
-      <div className="container-x">
-        <LineReveal className="max-w-5xl font-display text-statement" lines={["Build a clearer path", <>from learning to <em>employability.</em></>]} />
-        <Reveal className="mt-10 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-          <p className="max-w-md text-lg opacity-70">Bring training, evidence, skills and placement preparation into one connected platform.</p>
-          <div className="flex flex-wrap gap-3">
-            <Button size="xl" onClick={demo} className="bg-background text-foreground hover:bg-accent hover:text-accent-foreground">
-              Request a Demo <ArrowRight />
-            </Button>
-            <Button asChild size="xl" variant="ghost" className="border border-background/30 text-background hover:bg-background/10 hover:text-background">
-              <Link to="/login">Explore ClassRoom</Link>
-            </Button>
-          </div>
-        </Reveal>
+    <section aria-label="Ziphyrus X glyph wall" className="border-t border-border bg-background">
+      <div className="h-[26rem] w-full md:h-[36rem]">
+        <GlyphWall />
       </div>
     </section>
   );
