@@ -15,3 +15,4 @@
 - Secondary Super Admin modules render from one route (/admin/m/$module) keyed by src/features/super-admin/nav.ts — one place to add modules.
 - Theme is a `dark`/`light` class on <html>, set pre-paint by THEME_SCRIPT — avoids a flash of the wrong theme.
 - Role workspaces are a layout route (e.g. /editor) rendering WorkspaceShell with a nav config in src/features/<role>/nav.ts; data goes through src/features/<role>/mock-service.ts until the API exists — one swap point per role.
+- The landing glyph wall owns WebGL resources inside an effect and pauses off-screen; its colors come from global wall tokens so the uploaded artwork stays isolated and configurable.
