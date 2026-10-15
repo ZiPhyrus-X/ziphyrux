@@ -15,6 +15,18 @@ Object.defineProperty(window, "matchMedia", {
     removeListener: () => {},
     addEventListener: () => {},
     removeEventListener: () => {},
-    dispatchEvent: () => {},
   }),
+});
+
+Object.defineProperty(window, "IntersectionObserver", {
+  writable: true,
+  value: class MockIntersectionObserver {
+    readonly root: Element | null = null;
+    readonly rootMargin: string = "";
+    readonly thresholds: ReadonlyArray<number> = [];
+    disconnect = () => {};
+    observe = () => {};
+    takeRecords = () => [];
+    unobserve = () => {};
+  },
 });

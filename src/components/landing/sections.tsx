@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Info } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EASE, LineReveal, Reveal, SectionLabel } from "@/animations/motion";
 import { AUDIENCES, JOURNEY, NAV, PLACEMENT, PRINCIPLES, SITE, SKILLS } from "@/data/site";
@@ -60,34 +60,169 @@ export function AudienceSection() {
 /* SECTION 07 — Student journey (interactive timeline, illustrative data) */
 export function StudentJourney() {
   const [s, setS] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const stepRefs = useRef<(HTMLLIElement | null)[]>([]);
+
+  // Automatically scroll active step into view in responsive mode
+  useEffect(() => {
+    stepRefs.current[s]?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [s]);
+
+  const handlePrev = () => setS((prev) => Math.max(0, prev - 1));
+  const handleNext = () => setS((prev) => Math.min(JOURNEY.length - 1, prev + 1));
+
   return (
     <section id="journey" className="border-t border-border py-28 md:py-36">
       <div className="container-x">
         <SectionLabel n="05">The student journey</SectionLabel>
         <LineReveal className="mt-10 max-w-5xl font-display text-section" lines={["From activity to evidence.", <em className="text-accent">From evidence to progress.</em>]} />
-        <div className="mt-16 no-scrollbar overflow-x-auto pb-2">
-          <ol className="grid min-w-[860px] grid-cols-8 border-t border-line">
+
+        {/* Responsive Mobile / Tablet Header Navigation (< lg) */}
+        <div className="mt-12 flex items-center justify-between border-b border-line pb-4 lg:hidden">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs font-semibold text-accent">
+              Stage {String(s + 1).padStart(2, "0")} / {String(JOURNEY.length).padStart(2, "0")}
+            </span>
+            <span className="text-muted-foreground">·</span>
+            <span className="text-sm font-medium text-foreground">
+              {JOURNEY[s]!.k}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handlePrev}
+              disabled={s === 0}
+              aria-label="Previous journey stage"
+              className="h-8 w-8 rounded-sm border-line hover:border-foreground"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleNext}
+              disabled={s === JOURNEY.length - 1}
+              aria-label="Next journey stage"
+              className="h-8 w-8 rounded-sm border-line hover:border-foreground"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Timeline Track: Smoothly scrollable with snap on mobile, full 8-column grid on desktop */}
+        <div
+          ref={trackRef}
+          className="mt-8 lg:mt-16 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-3 no-scrollbar"
+        >
+          <ol className="flex min-w-max lg:min-w-0 lg:w-full lg:grid lg:grid-cols-8 border-t border-line">
             {JOURNEY.map((j, idx) => (
-              <li key={j.k}>
-                <button onClick={() => setS(idx)} className="group w-full pt-5 text-left" aria-pressed={s === idx}>
-                  <span className={cn("-mt-[1.45rem] mb-4 block h-2.5 w-2.5 rounded-full border transition-all", idx <= s ? "border-accent bg-accent" : "border-line bg-background")} />
+              <li
+                key={j.k}
+                ref={(el) => {
+                  stepRefs.current[idx] = el;
+                }}
+                className="w-32 shrink-0 snap-center pr-4 sm:w-36 lg:w-auto lg:shrink lg:pr-0"
+              >
+                <button
+                  onClick={() => setS(idx)}
+                  className="group w-full pt-5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+                  aria-pressed={s === idx}
+                >
+                  <span
+                    className={cn(
+                      "-mt-[1.45rem] mb-4 block h-2.5 w-2.5 rounded-full border transition-all duration-300",
+                      idx <= s
+                        ? "border-accent bg-accent shadow-[0_0_8px_rgba(234,179,8,0.4)]"
+                        : "border-line bg-background",
+                      idx === s ? "scale-125 ring-2 ring-accent/30" : "",
+                    )}
+                  />
                   <span className="eyebrow">{String(idx + 1).padStart(2, "0")}</span>
-                  <span className={cn("mt-1 block text-sm font-medium transition-colors", idx === s ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")}>{j.k}</span>
+                  <span
+                    className={cn(
+                      "mt-1 block text-sm font-medium transition-colors break-words",
+                      idx === s
+                        ? "text-foreground font-semibold"
+                        : "text-muted-foreground group-hover:text-foreground",
+                    )}
+                  >
+                    {j.k}
+                  </span>
                 </button>
               </li>
             ))}
           </ol>
         </div>
-        <div className="mt-10 grid gap-6 border border-line p-8 md:grid-cols-[1fr_auto] md:items-end md:p-10">
+
+        {/* Responsive Pagination Indicators on Mobile */}
+        <div className="mt-4 flex items-center justify-center gap-1.5 lg:hidden" aria-label="Timeline navigation dots">
+          {JOURNEY.map((item, idx) => (
+            <button
+              key={item.k}
+              type="button"
+              onClick={() => setS(idx)}
+              aria-label={`Jump to stage 0${idx + 1}: ${item.k}`}
+              className={cn(
+                "h-1.5 rounded-full transition-all duration-300",
+                idx === s ? "w-6 bg-accent" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60"
+              )}
+            />
+          ))}
+        </div>
+
+        {/* Active Stage Detail Card */}
+        <div className="mt-8 lg:mt-10 grid gap-6 border border-line p-6 sm:p-8 md:grid-cols-[1fr_auto] md:items-end md:p-10">
           <AnimatePresence mode="wait">
-            <motion.div key={s} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.35, ease: EASE }}>
-              <p className="eyebrow">{JOURNEY[s]!.k}</p>
-              <p className="mt-3 font-display text-3xl md:text-4xl">{JOURNEY[s]!.v}</p>
+            <motion.div
+              key={s}
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -12 }}
+              transition={{ duration: 0.35, ease: EASE }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs text-accent">0{s + 1}</span>
+                <span className="text-muted-foreground/60">/</span>
+                <p className="eyebrow">{JOURNEY[s]!.k}</p>
+              </div>
+              <p className="mt-3 font-display text-2xl sm:text-3xl md:text-4xl">{JOURNEY[s]!.v}</p>
             </motion.div>
           </AnimatePresence>
-          <div className="text-right">
-            <p className="font-mono text-2xl text-accent">{JOURNEY[s]!.m}</p>
-            <p className="mt-2 eyebrow">Illustrative sample</p>
+          <div className="flex flex-row md:flex-col items-center justify-between md:items-end gap-4 border-t border-line/60 pt-4 md:border-t-0 md:pt-0">
+            <div className="text-left md:text-right">
+              <p className="font-mono text-xl sm:text-2xl text-accent">{JOURNEY[s]!.m}</p>
+              <p className="mt-1 eyebrow">Illustrative sample</p>
+            </div>
+            {/* Quick Next / Prev navigation inside card on mobile */}
+            <div className="flex items-center gap-2 md:hidden">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrev}
+                disabled={s === 0}
+                className="h-8 text-xs px-2.5 border-line"
+              >
+                <ChevronLeft className="mr-0.5 h-3.5 w-3.5" /> Prev
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNext}
+                disabled={s === JOURNEY.length - 1}
+                className="h-8 text-xs px-2.5 border-line"
+              >
+                Next <ChevronRight className="ml-0.5 h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
