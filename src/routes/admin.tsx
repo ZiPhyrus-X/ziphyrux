@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { authService, type Session } from "@/lib/auth/service";
 import { ADMIN_NAV } from "@/features/super-admin/nav";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Ziphyrus - X" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Super Admin — Ziphyrus X" }, { name: "robots", content: "noindex" }] }),
   component: AdminLayout,
 });
 
@@ -53,18 +54,18 @@ function AdminLayout() {
 
   return (
     <div className="flex min-h-screen">
-      <aside className={cn("sticky top-0 hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-300 md:flex", collapsed ? "w-16" : "w-64")}>
-        <div className={cn("flex h-14 items-center border-b border-sidebar-border px-4", collapsed && "justify-center px-0")}>
+      <aside className={cn("sticky top-0 hidden h-screen shrink-0 flex-col border-r border-sidebar-border/60 bg-sidebar/80 backdrop-blur-xl transition-[width] duration-300 md:flex", collapsed ? "w-16" : "w-64")}>
+        <div className={cn("flex h-14 items-center border-b border-sidebar-border/60 px-4", collapsed && "justify-center px-0")}>
           {collapsed ? <span className="font-display text-xl">Z</span> : <Wordmark />}
         </div>
         <div className="flex-1 overflow-y-auto"><NavList collapsed={collapsed} /></div>
-        <button onClick={() => setCollapsed(!collapsed)} className="flex items-center gap-2 border-t border-sidebar-border p-4 text-xs text-muted-foreground hover:text-foreground" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+        <button onClick={() => setCollapsed(!collapsed)} className="flex items-center gap-2 border-t border-sidebar-border/60 p-4 text-xs text-muted-foreground hover:text-foreground" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
           {collapsed ? <ChevronsRight className="mx-auto h-4 w-4" /> : <><ChevronsLeft className="h-4 w-4" /> Collapse</>}
         </button>
       </aside>
       <Sheet open={mobile} onOpenChange={setMobile}>
-        <SheetContent side="left" className="w-72 bg-sidebar p-0">
-          <SheetTitle className="border-b border-sidebar-border p-4"><Wordmark /></SheetTitle>
+        <SheetContent side="left" className="w-72 bg-sidebar/90 backdrop-blur-2xl p-0">
+          <SheetTitle className="border-b border-sidebar-border/60 p-4"><Wordmark /></SheetTitle>
           <NavList onNavigate={() => setMobile(false)} />
         </SheetContent>
       </Sheet>
@@ -75,7 +76,7 @@ function AdminLayout() {
             <FlaskConical className="h-3.5 w-3.5 text-warning" /> Development preview — simulated session and illustrative data
           </div>
         )}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/90 px-4 backdrop-blur md:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/60 bg-background/75 px-4 backdrop-blur-xl md:px-6">
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobile(true)} aria-label="Open navigation"><Menu /></Button>
           <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
             <Link to="/admin" className="text-muted-foreground hover:text-foreground">Super Admin</Link>
@@ -84,27 +85,25 @@ function AdminLayout() {
           </nav>
           <div className="relative ml-auto hidden w-64 lg:block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search colleges, users…" className="h-9 pl-9" aria-label="Global search" onKeyDown={(e) => { if (e.key === "Enter") navigate({ to: "/admin/users" }); }} />
+            <Input placeholder="Search colleges, accounts…" className="h-9 pl-9" aria-label="Global search" onKeyDown={(e) => { if (e.key === "Enter") navigate({ to: "/admin/accounts" as any }); }} />
           </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Notifications" className="ml-auto lg:ml-0"><Bell /></Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-72 text-sm">
-              <p className="eyebrow">Notifications</p>
-              <p className="mt-3 text-muted-foreground">1 background job failed in the last hour.</p>
-              <Link to="/admin/m/$module" params={{ module: "jobs" }} className="mt-2 inline-block text-accent hover:underline">View jobs →</Link>
-            </PopoverContent>
-          </Popover>
+          <NotificationBell
+            role="super_admin"
+            align="end"
+            manageLink="/admin/audit"
+            manageLabel="View audit activity →"
+            className="ml-auto lg:ml-0"
+          />
           <ThemeToggle />
           <DropdownMenu>
-            <DropdownMenuTrigger className="grid h-9 w-9 place-items-center rounded-full bg-foreground font-mono text-xs text-background" aria-label="Account menu">PA</DropdownMenuTrigger>
+            <DropdownMenuTrigger className="grid h-9 w-9 place-items-center rounded-full bg-foreground font-mono text-xs text-background" aria-label="Account menu">SA</DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
               <DropdownMenuLabel>
                 <p>{session.user.name}</p>
                 <p className="font-mono text-xs font-normal text-muted-foreground">{session.user.loginId} · Super Admin</p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate({ to: "/admin/account" as any })}>My Account</DropdownMenuItem>
               <DropdownMenuItem disabled className="text-xs">Session started {new Date(session.issuedAt).toLocaleTimeString()}</DropdownMenuItem>
               <DropdownMenuItem onClick={signOut}><LogOut className="h-4 w-4" /> Sign out</DropdownMenuItem>
             </DropdownMenuContent>

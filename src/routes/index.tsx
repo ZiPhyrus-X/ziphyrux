@@ -14,7 +14,7 @@ const DESC = "College employability intelligence: connect learning, coding, asse
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Ziphyrus - X" },
+      { title: TITLE },
       { name: "description", content: DESC },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESC },

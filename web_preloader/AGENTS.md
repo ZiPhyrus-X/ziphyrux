@@ -1,0 +1,2 @@
+- Keep entry-triggered glyph text illumination inside GlyphWall's WebGL shader, using a canvas text mask; this forms letters from existing glyphs rather than an overlaid heading.
+- Keep wall palette values in global CSS semantic tokens so the canvas and section share the same theme.

@@ -7,18 +7,34 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-.output
-.vinxi
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build artifacts
+dist/
+dist-ssr/
+.output/
+**/.output/
+.vinxi/
 .tanstack/**
-.nitro
+.nitro/
+**/.nitro/
+
+# Environment files
+.env
+.env.*
+!.env.example
 *.local
 
 # Wrangler / Cloudflare
 .wrangler/
+**/.wrangler/
 .dev.vars
+
+# Supabase
+supabase/.temp/
+
 
 # Editor directories and files
 .vscode/*
@@ -30,3 +46,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+

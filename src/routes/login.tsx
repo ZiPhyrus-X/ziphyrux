@@ -17,7 +17,7 @@ import { LOOP } from "@/data/site";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Ziphyrus - X" },
+      { title: "Sign in — Ziphyrus X ClassRoom" },
       { name: "description", content: "Sign in to Ziphyrus X with your registered ID." },
       { property: "og:title", content: "Sign in — Ziphyrus X ClassRoom" },
       { property: "og:description", content: "Sign in to the Ziphyrus X employability intelligence platform." },
@@ -63,7 +63,7 @@ function LoginPage() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <aside className="relative hidden flex-col justify-between overflow-hidden border-r border-border bg-surface p-12 lg:flex">
+      <aside className="relative hidden flex-col justify-between overflow-hidden border-r border-border/60 bg-surface/75 backdrop-blur-2xl p-12 lg:flex">
         <Wordmark />
         <div>
           <p className="eyebrow text-accent">ClassRoom</p>
@@ -90,7 +90,7 @@ function LoginPage() {
           initial={reduce ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: EASE }}
-          className="m-auto w-full max-w-sm py-12"
+          className="m-auto w-full max-w-sm rounded-2xl border border-border/70 bg-card/70 p-8 shadow-2xl backdrop-blur-2xl"
         >
           <h2 className="font-display text-5xl">Sign in</h2>
           <p className="mt-2 text-sm text-muted-foreground">Use the login ID issued by your institution or platform administrator.</p>
@@ -100,7 +100,7 @@ function LoginPage() {
               <FlaskConical className="h-4 w-4 shrink-0 text-warning" />
               <p>
                 <strong className="text-foreground">Development preview.</strong> Sign-in is simulated and not connected to a real backend.
-                Use <code className="font-mono text-foreground">dev.superadmin</code>, <code className="font-mono text-foreground">dev.editor</code> or <code className="font-mono text-foreground">dev.coordinator</code> with password <code className="font-mono text-foreground">{DEV_MOCK_HINT.password}</code>.
+                Use <code className="font-mono text-foreground">{DEV_MOCK_HINT.loginId}</code> / <code className="font-mono text-foreground">{DEV_MOCK_HINT.password}</code>.
               </p>
             </div>
           )}

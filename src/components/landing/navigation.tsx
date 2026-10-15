@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { ArrowRight, GraduationCap, Menu, X } from "lucide-react";
 import { Wordmark, ThemeToggle } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { NAV } from "@/data/site";
-import { useDemo } from "./demo-dialog";
 import { cn } from "@/lib/utils";
 import { EASE } from "@/animations/motion";
 
@@ -13,7 +12,6 @@ export function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<string>("");
-  const demo = useDemo();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -38,10 +36,13 @@ export function Navigation() {
   }, [open]);
 
   return (
-    <header
+    <motion.header
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: EASE }}
       className={cn(
         "fixed inset-x-0 top-0 z-50 transition-all duration-500",
-        scrolled ? "border-b border-border bg-background/85 backdrop-blur-md" : "border-b border-transparent",
+        scrolled ? "border-b border-border/60 bg-background/75 backdrop-blur-xl shadow-sm" : "border-b border-transparent",
       )}
     >
       <div className="container-x flex h-16 items-center justify-between gap-6">
@@ -65,11 +66,20 @@ export function Navigation() {
         </nav>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
-            <Link to="/login">ClassRoom Login</Link>
-          </Button>
-          <Button variant="hero" size="sm" className="hidden md:inline-flex" onClick={demo}>
-            Request a Demo
+          <Button
+            asChild
+            size="sm"
+            className="group relative hidden overflow-hidden rounded-full border border-amber-500/30 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 py-2 text-xs font-semibold tracking-wide text-white shadow-md shadow-amber-500/20 transition-all duration-300 hover:scale-[1.03] hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/30 active:scale-[0.98] md:inline-flex"
+          >
+            <Link to="/login" className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+              </span>
+              <GraduationCap className="h-4 w-4 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" />
+              <span>Classroom</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </Link>
           </Button>
           <button
             className="inline-grid h-9 w-9 place-items-center rounded-md border border-border lg:hidden"
@@ -106,17 +116,22 @@ export function Navigation() {
                 </motion.a>
               ))}
               <div className="mt-8 flex flex-col gap-3">
-                <Button asChild variant="line" size="xl">
-                  <Link to="/login">ClassRoom Login</Link>
-                </Button>
-                <Button variant="hero" size="xl" onClick={() => { setOpen(false); demo(); }}>
-                  Request a Demo
+                <Button
+                  asChild
+                  size="xl"
+                  className="group relative w-full overflow-hidden rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-base font-semibold text-white shadow-md shadow-amber-500/25 transition-all duration-300 hover:border-amber-400"
+                >
+                  <Link to="/login" onClick={() => setOpen(false)} className="flex items-center justify-center gap-2.5">
+                    <GraduationCap className="h-5 w-5" />
+                    <span>Classroom</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </Button>
               </div>
             </nav>
           </motion.div>
         )}
       </AnimatePresence>
-    </header>
+    </motion.header>
   );
 }

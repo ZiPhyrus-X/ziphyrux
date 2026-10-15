@@ -14,21 +14,60 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CoordinatorRouteImport } from './routes/coordinator'
 import { Route as EditorRouteImport } from './routes/editor'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PlacementRouteImport } from './routes/placement'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as StudentRouteImport } from './routes/student'
+import { Route as TrainerRouteImport } from './routes/trainer'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAccountRouteImport } from './routes/admin.account'
+import { Route as AdminAccountsRouteImport } from './routes/admin.accounts'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminCollegesRouteImport } from './routes/admin.colleges'
+import { Route as AdminIntelligenceRouteImport } from './routes/admin.intelligence'
+import { Route as AdminOverridesRouteImport } from './routes/admin.overrides'
+import { Route as AdminOversightRouteImport } from './routes/admin.oversight'
+import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as CoordinatorIndexRouteImport } from './routes/coordinator.index'
+import { Route as CoordinatorAcademicRouteImport } from './routes/coordinator.academic'
+import { Route as CoordinatorActionPlansRouteImport } from './routes/coordinator.action-plans'
+import { Route as CoordinatorAllocationsRouteImport } from './routes/coordinator.allocations'
+import { Route as CoordinatorBatchesRouteImport } from './routes/coordinator.batches'
+import { Route as CoordinatorPlacementOfficersRouteImport } from './routes/coordinator.placement-officers'
+import { Route as CoordinatorRegistrationRouteImport } from './routes/coordinator.registration'
+import { Route as CoordinatorScheduleRouteImport } from './routes/coordinator.schedule'
+import { Route as CoordinatorSessionsRouteImport } from './routes/coordinator.sessions'
+import { Route as CoordinatorStudentsRouteImport } from './routes/coordinator.students'
+import { Route as CoordinatorTrainersRouteImport } from './routes/coordinator.trainers'
 import { Route as EditorIndexRouteImport } from './routes/editor.index'
-import { Route as EditorAccountRouteImport } from './routes/editor.account'
 import { Route as EditorAssessmentsRouteImport } from './routes/editor.assessments'
-import { Route as EditorContentRouteImport } from './routes/editor.content'
+import { Route as EditorCollegesRouteImport } from './routes/editor.colleges'
+import { Route as EditorCoordinatorsRouteImport } from './routes/editor.coordinators'
+import { Route as EditorCoursesRouteImport } from './routes/editor.courses'
 import { Route as EditorFeaturesRouteImport } from './routes/editor.features'
-import { Route as EditorHistoryRouteImport } from './routes/editor.history'
 import { Route as EditorNotificationsRouteImport } from './routes/editor.notifications'
 import { Route as EditorOverridesRouteImport } from './routes/editor.overrides'
 import { Route as EditorQuestionsRouteImport } from './routes/editor.questions'
 import { Route as LegalDocRouteImport } from './routes/legal.$doc'
+import { Route as PlacementIndexRouteImport } from './routes/placement.index'
+import { Route as PlacementCompaniesRouteImport } from './routes/placement.companies'
+import { Route as PlacementDrivesRouteImport } from './routes/placement.drives'
+import { Route as PlacementOpportunitiesRouteImport } from './routes/placement.opportunities'
+import { Route as PlacementStudentsRouteImport } from './routes/placement.students'
+import { Route as StudentIndexRouteImport } from './routes/student.index'
+import { Route as StudentAssessmentsRouteImport } from './routes/student.assessments'
+import { Route as StudentJudgeRouteImport } from './routes/student.judge'
+import { Route as StudentLearningRouteImport } from './routes/student.learning'
+import { Route as TrainerIndexRouteImport } from './routes/trainer.index'
+import { Route as TrainerClassesRouteImport } from './routes/trainer.classes'
+import { Route as TrainerStudentsRouteImport } from './routes/trainer.students'
 import { Route as AdminCollegesIdRouteImport } from './routes/admin.colleges_.$id'
 import { Route as AdminMModuleRouteImport } from './routes/admin.m.$module'
+import { Route as CoordinatorMModuleRouteImport } from './routes/coordinator.m.$module'
+import { Route as EditorMModuleRouteImport } from './routes/editor.m.$module'
+import { Route as PlacementMModuleRouteImport } from './routes/placement.m.$module'
+import { Route as StudentMModuleRouteImport } from './routes/student.m.$module'
+import { Route as TrainerMModuleRouteImport } from './routes/trainer.m.$module'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -55,9 +94,44 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlacementRoute = PlacementRouteImport.update({
+  id: '/placement',
+  path: '/placement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudentRoute = StudentRouteImport.update({
+  id: '/student',
+  path: '/student',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrainerRoute = TrainerRouteImport.update({
+  id: '/trainer',
+  path: '/trainer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAccountRoute = AdminAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAccountsRoute = AdminAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCollegesRoute = AdminCollegesRouteImport.update({
@@ -65,19 +139,90 @@ const AdminCollegesRoute = AdminCollegesRouteImport.update({
   path: '/colleges',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminIntelligenceRoute = AdminIntelligenceRouteImport.update({
+  id: '/intelligence',
+  path: '/intelligence',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOverridesRoute = AdminOverridesRouteImport.update({
+  id: '/overrides',
+  path: '/overrides',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOversightRoute = AdminOversightRouteImport.update({
+  id: '/oversight',
+  path: '/oversight',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
+const CoordinatorIndexRoute = CoordinatorIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CoordinatorRoute,
+} as any)
+const CoordinatorAcademicRoute = CoordinatorAcademicRouteImport.update({
+  id: '/academic',
+  path: '/academic',
+  getParentRoute: () => CoordinatorRoute,
+} as any)
+const CoordinatorActionPlansRoute = CoordinatorActionPlansRouteImport.update({
+  id: '/action-plans',
+  path: '/action-plans',
+  getParentRoute: () => CoordinatorRoute,
+} as any)
+const CoordinatorAllocationsRoute = CoordinatorAllocationsRouteImport.update({
+  id: '/allocations',
+  path: '/allocations',
+  getParentRoute: () => CoordinatorRoute,
+} as any)
+const CoordinatorBatchesRoute = CoordinatorBatchesRouteImport.update({
+  id: '/batches',
+  path: '/batches',
+  getParentRoute: () => CoordinatorRoute,
+} as any)
+const CoordinatorPlacementOfficersRoute =
+  CoordinatorPlacementOfficersRouteImport.update({
+    id: '/placement-officers',
+    path: '/placement-officers',
+    getParentRoute: () => CoordinatorRoute,
+  } as any)
+const CoordinatorRegistrationRoute = CoordinatorRegistrationRouteImport.update({
+  id: '/registration',
+  path: '/registration',
+  getParentRoute: () => CoordinatorRoute,
+} as any)
+const CoordinatorScheduleRoute = CoordinatorScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => CoordinatorRoute,
+} as any)
+const CoordinatorSessionsRoute = CoordinatorSessionsRouteImport.update({
+  id: '/sessions',
+  path: '/sessions',
+  getParentRoute: () => CoordinatorRoute,
+} as any)
+const CoordinatorStudentsRoute = CoordinatorStudentsRouteImport.update({
+  id: '/students',
+  path: '/students',
+  getParentRoute: () => CoordinatorRoute,
+} as any)
+const CoordinatorTrainersRoute = CoordinatorTrainersRouteImport.update({
+  id: '/trainers',
+  path: '/trainers',
+  getParentRoute: () => CoordinatorRoute,
+} as any)
 const EditorIndexRoute = EditorIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => EditorRoute,
-} as any)
-const EditorAccountRoute = EditorAccountRouteImport.update({
-  id: '/account',
-  path: '/account',
   getParentRoute: () => EditorRoute,
 } as any)
 const EditorAssessmentsRoute = EditorAssessmentsRouteImport.update({
@@ -85,19 +230,24 @@ const EditorAssessmentsRoute = EditorAssessmentsRouteImport.update({
   path: '/assessments',
   getParentRoute: () => EditorRoute,
 } as any)
-const EditorContentRoute = EditorContentRouteImport.update({
-  id: '/content',
-  path: '/content',
+const EditorCollegesRoute = EditorCollegesRouteImport.update({
+  id: '/colleges',
+  path: '/colleges',
+  getParentRoute: () => EditorRoute,
+} as any)
+const EditorCoordinatorsRoute = EditorCoordinatorsRouteImport.update({
+  id: '/coordinators',
+  path: '/coordinators',
+  getParentRoute: () => EditorRoute,
+} as any)
+const EditorCoursesRoute = EditorCoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
   getParentRoute: () => EditorRoute,
 } as any)
 const EditorFeaturesRoute = EditorFeaturesRouteImport.update({
   id: '/features',
   path: '/features',
-  getParentRoute: () => EditorRoute,
-} as any)
-const EditorHistoryRoute = EditorHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
   getParentRoute: () => EditorRoute,
 } as any)
 const EditorNotificationsRoute = EditorNotificationsRouteImport.update({
@@ -120,6 +270,66 @@ const LegalDocRoute = LegalDocRouteImport.update({
   path: '/legal/$doc',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlacementIndexRoute = PlacementIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PlacementRoute,
+} as any)
+const PlacementCompaniesRoute = PlacementCompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
+  getParentRoute: () => PlacementRoute,
+} as any)
+const PlacementDrivesRoute = PlacementDrivesRouteImport.update({
+  id: '/drives',
+  path: '/drives',
+  getParentRoute: () => PlacementRoute,
+} as any)
+const PlacementOpportunitiesRoute = PlacementOpportunitiesRouteImport.update({
+  id: '/opportunities',
+  path: '/opportunities',
+  getParentRoute: () => PlacementRoute,
+} as any)
+const PlacementStudentsRoute = PlacementStudentsRouteImport.update({
+  id: '/students',
+  path: '/students',
+  getParentRoute: () => PlacementRoute,
+} as any)
+const StudentIndexRoute = StudentIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentAssessmentsRoute = StudentAssessmentsRouteImport.update({
+  id: '/assessments',
+  path: '/assessments',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentJudgeRoute = StudentJudgeRouteImport.update({
+  id: '/judge',
+  path: '/judge',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentLearningRoute = StudentLearningRouteImport.update({
+  id: '/learning',
+  path: '/learning',
+  getParentRoute: () => StudentRoute,
+} as any)
+const TrainerIndexRoute = TrainerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TrainerRoute,
+} as any)
+const TrainerClassesRoute = TrainerClassesRouteImport.update({
+  id: '/classes',
+  path: '/classes',
+  getParentRoute: () => TrainerRoute,
+} as any)
+const TrainerStudentsRoute = TrainerStudentsRouteImport.update({
+  id: '/students',
+  path: '/students',
+  getParentRoute: () => TrainerRoute,
+} as any)
 const AdminCollegesIdRoute = AdminCollegesIdRouteImport.update({
   id: '/colleges_/$id',
   path: '/colleges/$id',
@@ -130,71 +340,209 @@ const AdminMModuleRoute = AdminMModuleRouteImport.update({
   path: '/m/$module',
   getParentRoute: () => AdminRoute,
 } as any)
+const CoordinatorMModuleRoute = CoordinatorMModuleRouteImport.update({
+  id: '/m/$module',
+  path: '/m/$module',
+  getParentRoute: () => CoordinatorRoute,
+} as any)
+const EditorMModuleRoute = EditorMModuleRouteImport.update({
+  id: '/m/$module',
+  path: '/m/$module',
+  getParentRoute: () => EditorRoute,
+} as any)
+const PlacementMModuleRoute = PlacementMModuleRouteImport.update({
+  id: '/m/$module',
+  path: '/m/$module',
+  getParentRoute: () => PlacementRoute,
+} as any)
+const StudentMModuleRoute = StudentMModuleRouteImport.update({
+  id: '/m/$module',
+  path: '/m/$module',
+  getParentRoute: () => StudentRoute,
+} as any)
+const TrainerMModuleRoute = TrainerMModuleRouteImport.update({
+  id: '/m/$module',
+  path: '/m/$module',
+  getParentRoute: () => TrainerRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/coordinator': typeof CoordinatorRoute
+  '/coordinator': typeof CoordinatorRouteWithChildren
   '/editor': typeof EditorRouteWithChildren
   '/login': typeof LoginRoute
+  '/placement': typeof PlacementRouteWithChildren
+  '/register': typeof RegisterRoute
+  '/student': typeof StudentRouteWithChildren
+  '/trainer': typeof TrainerRouteWithChildren
+  '/admin/account': typeof AdminAccountRoute
+  '/admin/accounts': typeof AdminAccountsRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/colleges': typeof AdminCollegesRoute
+  '/admin/intelligence': typeof AdminIntelligenceRoute
+  '/admin/overrides': typeof AdminOverridesRoute
+  '/admin/oversight': typeof AdminOversightRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/users': typeof AdminUsersRoute
-  '/editor/account': typeof EditorAccountRoute
+  '/coordinator/academic': typeof CoordinatorAcademicRoute
+  '/coordinator/action-plans': typeof CoordinatorActionPlansRoute
+  '/coordinator/allocations': typeof CoordinatorAllocationsRoute
+  '/coordinator/batches': typeof CoordinatorBatchesRoute
+  '/coordinator/placement-officers': typeof CoordinatorPlacementOfficersRoute
+  '/coordinator/registration': typeof CoordinatorRegistrationRoute
+  '/coordinator/schedule': typeof CoordinatorScheduleRoute
+  '/coordinator/sessions': typeof CoordinatorSessionsRoute
+  '/coordinator/students': typeof CoordinatorStudentsRoute
+  '/coordinator/trainers': typeof CoordinatorTrainersRoute
   '/editor/assessments': typeof EditorAssessmentsRoute
-  '/editor/content': typeof EditorContentRoute
+  '/editor/colleges': typeof EditorCollegesRoute
+  '/editor/coordinators': typeof EditorCoordinatorsRoute
+  '/editor/courses': typeof EditorCoursesRoute
   '/editor/features': typeof EditorFeaturesRoute
-  '/editor/history': typeof EditorHistoryRoute
   '/editor/notifications': typeof EditorNotificationsRoute
   '/editor/overrides': typeof EditorOverridesRoute
   '/editor/questions': typeof EditorQuestionsRoute
   '/legal/$doc': typeof LegalDocRoute
+  '/placement/companies': typeof PlacementCompaniesRoute
+  '/placement/drives': typeof PlacementDrivesRoute
+  '/placement/opportunities': typeof PlacementOpportunitiesRoute
+  '/placement/students': typeof PlacementStudentsRoute
+  '/student/assessments': typeof StudentAssessmentsRoute
+  '/student/judge': typeof StudentJudgeRoute
+  '/student/learning': typeof StudentLearningRoute
+  '/trainer/classes': typeof TrainerClassesRoute
+  '/trainer/students': typeof TrainerStudentsRoute
   '/admin/': typeof AdminIndexRoute
+  '/coordinator/': typeof CoordinatorIndexRoute
   '/editor/': typeof EditorIndexRoute
+  '/placement/': typeof PlacementIndexRoute
+  '/student/': typeof StudentIndexRoute
+  '/trainer/': typeof TrainerIndexRoute
   '/admin/colleges/$id': typeof AdminCollegesIdRoute
   '/admin/m/$module': typeof AdminMModuleRoute
+  '/coordinator/m/$module': typeof CoordinatorMModuleRoute
+  '/editor/m/$module': typeof EditorMModuleRoute
+  '/placement/m/$module': typeof PlacementMModuleRoute
+  '/student/m/$module': typeof StudentMModuleRoute
+  '/trainer/m/$module': typeof TrainerMModuleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/coordinator': typeof CoordinatorRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/admin/account': typeof AdminAccountRoute
+  '/admin/accounts': typeof AdminAccountsRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/colleges': typeof AdminCollegesRoute
+  '/admin/intelligence': typeof AdminIntelligenceRoute
+  '/admin/overrides': typeof AdminOverridesRoute
+  '/admin/oversight': typeof AdminOversightRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/users': typeof AdminUsersRoute
-  '/editor/account': typeof EditorAccountRoute
+  '/coordinator/academic': typeof CoordinatorAcademicRoute
+  '/coordinator/action-plans': typeof CoordinatorActionPlansRoute
+  '/coordinator/allocations': typeof CoordinatorAllocationsRoute
+  '/coordinator/batches': typeof CoordinatorBatchesRoute
+  '/coordinator/placement-officers': typeof CoordinatorPlacementOfficersRoute
+  '/coordinator/registration': typeof CoordinatorRegistrationRoute
+  '/coordinator/schedule': typeof CoordinatorScheduleRoute
+  '/coordinator/sessions': typeof CoordinatorSessionsRoute
+  '/coordinator/students': typeof CoordinatorStudentsRoute
+  '/coordinator/trainers': typeof CoordinatorTrainersRoute
   '/editor/assessments': typeof EditorAssessmentsRoute
-  '/editor/content': typeof EditorContentRoute
+  '/editor/colleges': typeof EditorCollegesRoute
+  '/editor/coordinators': typeof EditorCoordinatorsRoute
+  '/editor/courses': typeof EditorCoursesRoute
   '/editor/features': typeof EditorFeaturesRoute
-  '/editor/history': typeof EditorHistoryRoute
   '/editor/notifications': typeof EditorNotificationsRoute
   '/editor/overrides': typeof EditorOverridesRoute
   '/editor/questions': typeof EditorQuestionsRoute
   '/legal/$doc': typeof LegalDocRoute
+  '/placement/companies': typeof PlacementCompaniesRoute
+  '/placement/drives': typeof PlacementDrivesRoute
+  '/placement/opportunities': typeof PlacementOpportunitiesRoute
+  '/placement/students': typeof PlacementStudentsRoute
+  '/student/assessments': typeof StudentAssessmentsRoute
+  '/student/judge': typeof StudentJudgeRoute
+  '/student/learning': typeof StudentLearningRoute
+  '/trainer/classes': typeof TrainerClassesRoute
+  '/trainer/students': typeof TrainerStudentsRoute
   '/admin': typeof AdminIndexRoute
+  '/coordinator': typeof CoordinatorIndexRoute
   '/editor': typeof EditorIndexRoute
+  '/placement': typeof PlacementIndexRoute
+  '/student': typeof StudentIndexRoute
+  '/trainer': typeof TrainerIndexRoute
   '/admin/colleges/$id': typeof AdminCollegesIdRoute
   '/admin/m/$module': typeof AdminMModuleRoute
+  '/coordinator/m/$module': typeof CoordinatorMModuleRoute
+  '/editor/m/$module': typeof EditorMModuleRoute
+  '/placement/m/$module': typeof PlacementMModuleRoute
+  '/student/m/$module': typeof StudentMModuleRoute
+  '/trainer/m/$module': typeof TrainerMModuleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/coordinator': typeof CoordinatorRoute
+  '/coordinator': typeof CoordinatorRouteWithChildren
   '/editor': typeof EditorRouteWithChildren
   '/login': typeof LoginRoute
+  '/placement': typeof PlacementRouteWithChildren
+  '/register': typeof RegisterRoute
+  '/student': typeof StudentRouteWithChildren
+  '/trainer': typeof TrainerRouteWithChildren
+  '/admin/account': typeof AdminAccountRoute
+  '/admin/accounts': typeof AdminAccountsRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/colleges': typeof AdminCollegesRoute
+  '/admin/intelligence': typeof AdminIntelligenceRoute
+  '/admin/overrides': typeof AdminOverridesRoute
+  '/admin/oversight': typeof AdminOversightRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/users': typeof AdminUsersRoute
-  '/editor/account': typeof EditorAccountRoute
+  '/coordinator/academic': typeof CoordinatorAcademicRoute
+  '/coordinator/action-plans': typeof CoordinatorActionPlansRoute
+  '/coordinator/allocations': typeof CoordinatorAllocationsRoute
+  '/coordinator/batches': typeof CoordinatorBatchesRoute
+  '/coordinator/placement-officers': typeof CoordinatorPlacementOfficersRoute
+  '/coordinator/registration': typeof CoordinatorRegistrationRoute
+  '/coordinator/schedule': typeof CoordinatorScheduleRoute
+  '/coordinator/sessions': typeof CoordinatorSessionsRoute
+  '/coordinator/students': typeof CoordinatorStudentsRoute
+  '/coordinator/trainers': typeof CoordinatorTrainersRoute
   '/editor/assessments': typeof EditorAssessmentsRoute
-  '/editor/content': typeof EditorContentRoute
+  '/editor/colleges': typeof EditorCollegesRoute
+  '/editor/coordinators': typeof EditorCoordinatorsRoute
+  '/editor/courses': typeof EditorCoursesRoute
   '/editor/features': typeof EditorFeaturesRoute
-  '/editor/history': typeof EditorHistoryRoute
   '/editor/notifications': typeof EditorNotificationsRoute
   '/editor/overrides': typeof EditorOverridesRoute
   '/editor/questions': typeof EditorQuestionsRoute
   '/legal/$doc': typeof LegalDocRoute
+  '/placement/companies': typeof PlacementCompaniesRoute
+  '/placement/drives': typeof PlacementDrivesRoute
+  '/placement/opportunities': typeof PlacementOpportunitiesRoute
+  '/placement/students': typeof PlacementStudentsRoute
+  '/student/assessments': typeof StudentAssessmentsRoute
+  '/student/judge': typeof StudentJudgeRoute
+  '/student/learning': typeof StudentLearningRoute
+  '/trainer/classes': typeof TrainerClassesRoute
+  '/trainer/students': typeof TrainerStudentsRoute
   '/admin/': typeof AdminIndexRoute
+  '/coordinator/': typeof CoordinatorIndexRoute
   '/editor/': typeof EditorIndexRoute
+  '/placement/': typeof PlacementIndexRoute
+  '/student/': typeof StudentIndexRoute
+  '/trainer/': typeof TrainerIndexRoute
   '/admin/colleges_/$id': typeof AdminCollegesIdRoute
   '/admin/m/$module': typeof AdminMModuleRoute
+  '/coordinator/m/$module': typeof CoordinatorMModuleRoute
+  '/editor/m/$module': typeof EditorMModuleRoute
+  '/placement/m/$module': typeof PlacementMModuleRoute
+  '/student/m/$module': typeof StudentMModuleRoute
+  '/trainer/m/$module': typeof TrainerMModuleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -204,41 +552,115 @@ export interface FileRouteTypes {
     | '/coordinator'
     | '/editor'
     | '/login'
+    | '/placement'
+    | '/register'
+    | '/student'
+    | '/trainer'
+    | '/admin/account'
+    | '/admin/accounts'
+    | '/admin/audit'
     | '/admin/colleges'
+    | '/admin/intelligence'
+    | '/admin/overrides'
+    | '/admin/oversight'
+    | '/admin/reports'
     | '/admin/users'
-    | '/editor/account'
+    | '/coordinator/academic'
+    | '/coordinator/action-plans'
+    | '/coordinator/allocations'
+    | '/coordinator/batches'
+    | '/coordinator/placement-officers'
+    | '/coordinator/registration'
+    | '/coordinator/schedule'
+    | '/coordinator/sessions'
+    | '/coordinator/students'
+    | '/coordinator/trainers'
     | '/editor/assessments'
-    | '/editor/content'
+    | '/editor/colleges'
+    | '/editor/coordinators'
+    | '/editor/courses'
     | '/editor/features'
-    | '/editor/history'
     | '/editor/notifications'
     | '/editor/overrides'
     | '/editor/questions'
     | '/legal/$doc'
+    | '/placement/companies'
+    | '/placement/drives'
+    | '/placement/opportunities'
+    | '/placement/students'
+    | '/student/assessments'
+    | '/student/judge'
+    | '/student/learning'
+    | '/trainer/classes'
+    | '/trainer/students'
     | '/admin/'
+    | '/coordinator/'
     | '/editor/'
+    | '/placement/'
+    | '/student/'
+    | '/trainer/'
     | '/admin/colleges/$id'
     | '/admin/m/$module'
+    | '/coordinator/m/$module'
+    | '/editor/m/$module'
+    | '/placement/m/$module'
+    | '/student/m/$module'
+    | '/trainer/m/$module'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/coordinator'
     | '/login'
+    | '/register'
+    | '/admin/account'
+    | '/admin/accounts'
+    | '/admin/audit'
     | '/admin/colleges'
+    | '/admin/intelligence'
+    | '/admin/overrides'
+    | '/admin/oversight'
+    | '/admin/reports'
     | '/admin/users'
-    | '/editor/account'
+    | '/coordinator/academic'
+    | '/coordinator/action-plans'
+    | '/coordinator/allocations'
+    | '/coordinator/batches'
+    | '/coordinator/placement-officers'
+    | '/coordinator/registration'
+    | '/coordinator/schedule'
+    | '/coordinator/sessions'
+    | '/coordinator/students'
+    | '/coordinator/trainers'
     | '/editor/assessments'
-    | '/editor/content'
+    | '/editor/colleges'
+    | '/editor/coordinators'
+    | '/editor/courses'
     | '/editor/features'
-    | '/editor/history'
     | '/editor/notifications'
     | '/editor/overrides'
     | '/editor/questions'
     | '/legal/$doc'
+    | '/placement/companies'
+    | '/placement/drives'
+    | '/placement/opportunities'
+    | '/placement/students'
+    | '/student/assessments'
+    | '/student/judge'
+    | '/student/learning'
+    | '/trainer/classes'
+    | '/trainer/students'
     | '/admin'
+    | '/coordinator'
     | '/editor'
+    | '/placement'
+    | '/student'
+    | '/trainer'
     | '/admin/colleges/$id'
     | '/admin/m/$module'
+    | '/coordinator/m/$module'
+    | '/editor/m/$module'
+    | '/placement/m/$module'
+    | '/student/m/$module'
+    | '/trainer/m/$module'
   id:
     | '__root__'
     | '/'
@@ -246,29 +668,72 @@ export interface FileRouteTypes {
     | '/coordinator'
     | '/editor'
     | '/login'
+    | '/placement'
+    | '/register'
+    | '/student'
+    | '/trainer'
+    | '/admin/account'
+    | '/admin/accounts'
+    | '/admin/audit'
     | '/admin/colleges'
+    | '/admin/intelligence'
+    | '/admin/overrides'
+    | '/admin/oversight'
+    | '/admin/reports'
     | '/admin/users'
-    | '/editor/account'
+    | '/coordinator/academic'
+    | '/coordinator/action-plans'
+    | '/coordinator/allocations'
+    | '/coordinator/batches'
+    | '/coordinator/placement-officers'
+    | '/coordinator/registration'
+    | '/coordinator/schedule'
+    | '/coordinator/sessions'
+    | '/coordinator/students'
+    | '/coordinator/trainers'
     | '/editor/assessments'
-    | '/editor/content'
+    | '/editor/colleges'
+    | '/editor/coordinators'
+    | '/editor/courses'
     | '/editor/features'
-    | '/editor/history'
     | '/editor/notifications'
     | '/editor/overrides'
     | '/editor/questions'
     | '/legal/$doc'
+    | '/placement/companies'
+    | '/placement/drives'
+    | '/placement/opportunities'
+    | '/placement/students'
+    | '/student/assessments'
+    | '/student/judge'
+    | '/student/learning'
+    | '/trainer/classes'
+    | '/trainer/students'
     | '/admin/'
+    | '/coordinator/'
     | '/editor/'
+    | '/placement/'
+    | '/student/'
+    | '/trainer/'
     | '/admin/colleges_/$id'
     | '/admin/m/$module'
+    | '/coordinator/m/$module'
+    | '/editor/m/$module'
+    | '/placement/m/$module'
+    | '/student/m/$module'
+    | '/trainer/m/$module'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
-  CoordinatorRoute: typeof CoordinatorRoute
+  CoordinatorRoute: typeof CoordinatorRouteWithChildren
   EditorRoute: typeof EditorRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PlacementRoute: typeof PlacementRouteWithChildren
+  RegisterRoute: typeof RegisterRoute
+  StudentRoute: typeof StudentRouteWithChildren
+  TrainerRoute: typeof TrainerRouteWithChildren
   LegalDocRoute: typeof LegalDocRoute
 }
 
@@ -309,11 +774,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/placement': {
+      id: '/placement'
+      path: '/placement'
+      fullPath: '/placement'
+      preLoaderRoute: typeof PlacementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/student': {
+      id: '/student'
+      path: '/student'
+      fullPath: '/student'
+      preLoaderRoute: typeof StudentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trainer': {
+      id: '/trainer'
+      path: '/trainer'
+      fullPath: '/trainer'
+      preLoaderRoute: typeof TrainerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/account': {
+      id: '/admin/account'
+      path: '/account'
+      fullPath: '/admin/account'
+      preLoaderRoute: typeof AdminAccountRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/accounts': {
+      id: '/admin/accounts'
+      path: '/accounts'
+      fullPath: '/admin/accounts'
+      preLoaderRoute: typeof AdminAccountsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/colleges': {
@@ -323,6 +837,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCollegesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/intelligence': {
+      id: '/admin/intelligence'
+      path: '/intelligence'
+      fullPath: '/admin/intelligence'
+      preLoaderRoute: typeof AdminIntelligenceRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/overrides': {
+      id: '/admin/overrides'
+      path: '/overrides'
+      fullPath: '/admin/overrides'
+      preLoaderRoute: typeof AdminOverridesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/oversight': {
+      id: '/admin/oversight'
+      path: '/oversight'
+      fullPath: '/admin/oversight'
+      preLoaderRoute: typeof AdminOversightRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/users': {
       id: '/admin/users'
       path: '/users'
@@ -330,18 +872,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/coordinator/': {
+      id: '/coordinator/'
+      path: '/'
+      fullPath: '/coordinator/'
+      preLoaderRoute: typeof CoordinatorIndexRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
+    '/coordinator/academic': {
+      id: '/coordinator/academic'
+      path: '/academic'
+      fullPath: '/coordinator/academic'
+      preLoaderRoute: typeof CoordinatorAcademicRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
+    '/coordinator/action-plans': {
+      id: '/coordinator/action-plans'
+      path: '/action-plans'
+      fullPath: '/coordinator/action-plans'
+      preLoaderRoute: typeof CoordinatorActionPlansRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
+    '/coordinator/allocations': {
+      id: '/coordinator/allocations'
+      path: '/allocations'
+      fullPath: '/coordinator/allocations'
+      preLoaderRoute: typeof CoordinatorAllocationsRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
+    '/coordinator/batches': {
+      id: '/coordinator/batches'
+      path: '/batches'
+      fullPath: '/coordinator/batches'
+      preLoaderRoute: typeof CoordinatorBatchesRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
+    '/coordinator/placement-officers': {
+      id: '/coordinator/placement-officers'
+      path: '/placement-officers'
+      fullPath: '/coordinator/placement-officers'
+      preLoaderRoute: typeof CoordinatorPlacementOfficersRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
+    '/coordinator/registration': {
+      id: '/coordinator/registration'
+      path: '/registration'
+      fullPath: '/coordinator/registration'
+      preLoaderRoute: typeof CoordinatorRegistrationRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
+    '/coordinator/schedule': {
+      id: '/coordinator/schedule'
+      path: '/schedule'
+      fullPath: '/coordinator/schedule'
+      preLoaderRoute: typeof CoordinatorScheduleRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
+    '/coordinator/sessions': {
+      id: '/coordinator/sessions'
+      path: '/sessions'
+      fullPath: '/coordinator/sessions'
+      preLoaderRoute: typeof CoordinatorSessionsRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
+    '/coordinator/students': {
+      id: '/coordinator/students'
+      path: '/students'
+      fullPath: '/coordinator/students'
+      preLoaderRoute: typeof CoordinatorStudentsRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
+    '/coordinator/trainers': {
+      id: '/coordinator/trainers'
+      path: '/trainers'
+      fullPath: '/coordinator/trainers'
+      preLoaderRoute: typeof CoordinatorTrainersRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
     '/editor/': {
       id: '/editor/'
       path: '/'
       fullPath: '/editor/'
       preLoaderRoute: typeof EditorIndexRouteImport
-      parentRoute: typeof EditorRoute
-    }
-    '/editor/account': {
-      id: '/editor/account'
-      path: '/account'
-      fullPath: '/editor/account'
-      preLoaderRoute: typeof EditorAccountRouteImport
       parentRoute: typeof EditorRoute
     }
     '/editor/assessments': {
@@ -351,11 +963,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EditorAssessmentsRouteImport
       parentRoute: typeof EditorRoute
     }
-    '/editor/content': {
-      id: '/editor/content'
-      path: '/content'
-      fullPath: '/editor/content'
-      preLoaderRoute: typeof EditorContentRouteImport
+    '/editor/colleges': {
+      id: '/editor/colleges'
+      path: '/colleges'
+      fullPath: '/editor/colleges'
+      preLoaderRoute: typeof EditorCollegesRouteImport
+      parentRoute: typeof EditorRoute
+    }
+    '/editor/coordinators': {
+      id: '/editor/coordinators'
+      path: '/coordinators'
+      fullPath: '/editor/coordinators'
+      preLoaderRoute: typeof EditorCoordinatorsRouteImport
+      parentRoute: typeof EditorRoute
+    }
+    '/editor/courses': {
+      id: '/editor/courses'
+      path: '/courses'
+      fullPath: '/editor/courses'
+      preLoaderRoute: typeof EditorCoursesRouteImport
       parentRoute: typeof EditorRoute
     }
     '/editor/features': {
@@ -363,13 +989,6 @@ declare module '@tanstack/react-router' {
       path: '/features'
       fullPath: '/editor/features'
       preLoaderRoute: typeof EditorFeaturesRouteImport
-      parentRoute: typeof EditorRoute
-    }
-    '/editor/history': {
-      id: '/editor/history'
-      path: '/history'
-      fullPath: '/editor/history'
-      preLoaderRoute: typeof EditorHistoryRouteImport
       parentRoute: typeof EditorRoute
     }
     '/editor/notifications': {
@@ -400,6 +1019,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalDocRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/placement/': {
+      id: '/placement/'
+      path: '/'
+      fullPath: '/placement/'
+      preLoaderRoute: typeof PlacementIndexRouteImport
+      parentRoute: typeof PlacementRoute
+    }
+    '/placement/companies': {
+      id: '/placement/companies'
+      path: '/companies'
+      fullPath: '/placement/companies'
+      preLoaderRoute: typeof PlacementCompaniesRouteImport
+      parentRoute: typeof PlacementRoute
+    }
+    '/placement/drives': {
+      id: '/placement/drives'
+      path: '/drives'
+      fullPath: '/placement/drives'
+      preLoaderRoute: typeof PlacementDrivesRouteImport
+      parentRoute: typeof PlacementRoute
+    }
+    '/placement/opportunities': {
+      id: '/placement/opportunities'
+      path: '/opportunities'
+      fullPath: '/placement/opportunities'
+      preLoaderRoute: typeof PlacementOpportunitiesRouteImport
+      parentRoute: typeof PlacementRoute
+    }
+    '/placement/students': {
+      id: '/placement/students'
+      path: '/students'
+      fullPath: '/placement/students'
+      preLoaderRoute: typeof PlacementStudentsRouteImport
+      parentRoute: typeof PlacementRoute
+    }
+    '/student/': {
+      id: '/student/'
+      path: '/'
+      fullPath: '/student/'
+      preLoaderRoute: typeof StudentIndexRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/assessments': {
+      id: '/student/assessments'
+      path: '/assessments'
+      fullPath: '/student/assessments'
+      preLoaderRoute: typeof StudentAssessmentsRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/judge': {
+      id: '/student/judge'
+      path: '/judge'
+      fullPath: '/student/judge'
+      preLoaderRoute: typeof StudentJudgeRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/learning': {
+      id: '/student/learning'
+      path: '/learning'
+      fullPath: '/student/learning'
+      preLoaderRoute: typeof StudentLearningRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/trainer/': {
+      id: '/trainer/'
+      path: '/'
+      fullPath: '/trainer/'
+      preLoaderRoute: typeof TrainerIndexRouteImport
+      parentRoute: typeof TrainerRoute
+    }
+    '/trainer/classes': {
+      id: '/trainer/classes'
+      path: '/classes'
+      fullPath: '/trainer/classes'
+      preLoaderRoute: typeof TrainerClassesRouteImport
+      parentRoute: typeof TrainerRoute
+    }
+    '/trainer/students': {
+      id: '/trainer/students'
+      path: '/students'
+      fullPath: '/trainer/students'
+      preLoaderRoute: typeof TrainerStudentsRouteImport
+      parentRoute: typeof TrainerRoute
+    }
     '/admin/colleges_/$id': {
       id: '/admin/colleges_/$id'
       path: '/colleges/$id'
@@ -414,11 +1117,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMModuleRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/coordinator/m/$module': {
+      id: '/coordinator/m/$module'
+      path: '/m/$module'
+      fullPath: '/coordinator/m/$module'
+      preLoaderRoute: typeof CoordinatorMModuleRouteImport
+      parentRoute: typeof CoordinatorRoute
+    }
+    '/editor/m/$module': {
+      id: '/editor/m/$module'
+      path: '/m/$module'
+      fullPath: '/editor/m/$module'
+      preLoaderRoute: typeof EditorMModuleRouteImport
+      parentRoute: typeof EditorRoute
+    }
+    '/placement/m/$module': {
+      id: '/placement/m/$module'
+      path: '/m/$module'
+      fullPath: '/placement/m/$module'
+      preLoaderRoute: typeof PlacementMModuleRouteImport
+      parentRoute: typeof PlacementRoute
+    }
+    '/student/m/$module': {
+      id: '/student/m/$module'
+      path: '/m/$module'
+      fullPath: '/student/m/$module'
+      preLoaderRoute: typeof StudentMModuleRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/trainer/m/$module': {
+      id: '/trainer/m/$module'
+      path: '/m/$module'
+      fullPath: '/trainer/m/$module'
+      preLoaderRoute: typeof TrainerMModuleRouteImport
+      parentRoute: typeof TrainerRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminAccountRoute: typeof AdminAccountRoute
+  AdminAccountsRoute: typeof AdminAccountsRoute
+  AdminAuditRoute: typeof AdminAuditRoute
   AdminCollegesRoute: typeof AdminCollegesRoute
+  AdminIntelligenceRoute: typeof AdminIntelligenceRoute
+  AdminOverridesRoute: typeof AdminOverridesRoute
+  AdminOversightRoute: typeof AdminOversightRoute
+  AdminReportsRoute: typeof AdminReportsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCollegesIdRoute: typeof AdminCollegesIdRoute
@@ -426,7 +1171,14 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAccountRoute: AdminAccountRoute,
+  AdminAccountsRoute: AdminAccountsRoute,
+  AdminAuditRoute: AdminAuditRoute,
   AdminCollegesRoute: AdminCollegesRoute,
+  AdminIntelligenceRoute: AdminIntelligenceRoute,
+  AdminOverridesRoute: AdminOverridesRoute,
+  AdminOversightRoute: AdminOversightRoute,
+  AdminReportsRoute: AdminReportsRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCollegesIdRoute: AdminCollegesIdRoute,
@@ -435,39 +1187,137 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CoordinatorRouteChildren {
+  CoordinatorAcademicRoute: typeof CoordinatorAcademicRoute
+  CoordinatorActionPlansRoute: typeof CoordinatorActionPlansRoute
+  CoordinatorAllocationsRoute: typeof CoordinatorAllocationsRoute
+  CoordinatorBatchesRoute: typeof CoordinatorBatchesRoute
+  CoordinatorPlacementOfficersRoute: typeof CoordinatorPlacementOfficersRoute
+  CoordinatorRegistrationRoute: typeof CoordinatorRegistrationRoute
+  CoordinatorScheduleRoute: typeof CoordinatorScheduleRoute
+  CoordinatorSessionsRoute: typeof CoordinatorSessionsRoute
+  CoordinatorStudentsRoute: typeof CoordinatorStudentsRoute
+  CoordinatorTrainersRoute: typeof CoordinatorTrainersRoute
+  CoordinatorIndexRoute: typeof CoordinatorIndexRoute
+  CoordinatorMModuleRoute: typeof CoordinatorMModuleRoute
+}
+
+const CoordinatorRouteChildren: CoordinatorRouteChildren = {
+  CoordinatorAcademicRoute: CoordinatorAcademicRoute,
+  CoordinatorActionPlansRoute: CoordinatorActionPlansRoute,
+  CoordinatorAllocationsRoute: CoordinatorAllocationsRoute,
+  CoordinatorBatchesRoute: CoordinatorBatchesRoute,
+  CoordinatorPlacementOfficersRoute: CoordinatorPlacementOfficersRoute,
+  CoordinatorRegistrationRoute: CoordinatorRegistrationRoute,
+  CoordinatorScheduleRoute: CoordinatorScheduleRoute,
+  CoordinatorSessionsRoute: CoordinatorSessionsRoute,
+  CoordinatorStudentsRoute: CoordinatorStudentsRoute,
+  CoordinatorTrainersRoute: CoordinatorTrainersRoute,
+  CoordinatorIndexRoute: CoordinatorIndexRoute,
+  CoordinatorMModuleRoute: CoordinatorMModuleRoute,
+}
+
+const CoordinatorRouteWithChildren = CoordinatorRoute._addFileChildren(
+  CoordinatorRouteChildren,
+)
+
 interface EditorRouteChildren {
-  EditorAccountRoute: typeof EditorAccountRoute
   EditorAssessmentsRoute: typeof EditorAssessmentsRoute
-  EditorContentRoute: typeof EditorContentRoute
+  EditorCollegesRoute: typeof EditorCollegesRoute
+  EditorCoordinatorsRoute: typeof EditorCoordinatorsRoute
+  EditorCoursesRoute: typeof EditorCoursesRoute
   EditorFeaturesRoute: typeof EditorFeaturesRoute
-  EditorHistoryRoute: typeof EditorHistoryRoute
   EditorNotificationsRoute: typeof EditorNotificationsRoute
   EditorOverridesRoute: typeof EditorOverridesRoute
   EditorQuestionsRoute: typeof EditorQuestionsRoute
   EditorIndexRoute: typeof EditorIndexRoute
+  EditorMModuleRoute: typeof EditorMModuleRoute
 }
 
 const EditorRouteChildren: EditorRouteChildren = {
-  EditorAccountRoute: EditorAccountRoute,
   EditorAssessmentsRoute: EditorAssessmentsRoute,
-  EditorContentRoute: EditorContentRoute,
+  EditorCollegesRoute: EditorCollegesRoute,
+  EditorCoordinatorsRoute: EditorCoordinatorsRoute,
+  EditorCoursesRoute: EditorCoursesRoute,
   EditorFeaturesRoute: EditorFeaturesRoute,
-  EditorHistoryRoute: EditorHistoryRoute,
   EditorNotificationsRoute: EditorNotificationsRoute,
   EditorOverridesRoute: EditorOverridesRoute,
   EditorQuestionsRoute: EditorQuestionsRoute,
   EditorIndexRoute: EditorIndexRoute,
+  EditorMModuleRoute: EditorMModuleRoute,
 }
 
 const EditorRouteWithChildren =
   EditorRoute._addFileChildren(EditorRouteChildren)
 
+interface PlacementRouteChildren {
+  PlacementCompaniesRoute: typeof PlacementCompaniesRoute
+  PlacementDrivesRoute: typeof PlacementDrivesRoute
+  PlacementOpportunitiesRoute: typeof PlacementOpportunitiesRoute
+  PlacementStudentsRoute: typeof PlacementStudentsRoute
+  PlacementIndexRoute: typeof PlacementIndexRoute
+  PlacementMModuleRoute: typeof PlacementMModuleRoute
+}
+
+const PlacementRouteChildren: PlacementRouteChildren = {
+  PlacementCompaniesRoute: PlacementCompaniesRoute,
+  PlacementDrivesRoute: PlacementDrivesRoute,
+  PlacementOpportunitiesRoute: PlacementOpportunitiesRoute,
+  PlacementStudentsRoute: PlacementStudentsRoute,
+  PlacementIndexRoute: PlacementIndexRoute,
+  PlacementMModuleRoute: PlacementMModuleRoute,
+}
+
+const PlacementRouteWithChildren = PlacementRoute._addFileChildren(
+  PlacementRouteChildren,
+)
+
+interface StudentRouteChildren {
+  StudentAssessmentsRoute: typeof StudentAssessmentsRoute
+  StudentJudgeRoute: typeof StudentJudgeRoute
+  StudentLearningRoute: typeof StudentLearningRoute
+  StudentIndexRoute: typeof StudentIndexRoute
+  StudentMModuleRoute: typeof StudentMModuleRoute
+}
+
+const StudentRouteChildren: StudentRouteChildren = {
+  StudentAssessmentsRoute: StudentAssessmentsRoute,
+  StudentJudgeRoute: StudentJudgeRoute,
+  StudentLearningRoute: StudentLearningRoute,
+  StudentIndexRoute: StudentIndexRoute,
+  StudentMModuleRoute: StudentMModuleRoute,
+}
+
+const StudentRouteWithChildren =
+  StudentRoute._addFileChildren(StudentRouteChildren)
+
+interface TrainerRouteChildren {
+  TrainerClassesRoute: typeof TrainerClassesRoute
+  TrainerStudentsRoute: typeof TrainerStudentsRoute
+  TrainerIndexRoute: typeof TrainerIndexRoute
+  TrainerMModuleRoute: typeof TrainerMModuleRoute
+}
+
+const TrainerRouteChildren: TrainerRouteChildren = {
+  TrainerClassesRoute: TrainerClassesRoute,
+  TrainerStudentsRoute: TrainerStudentsRoute,
+  TrainerIndexRoute: TrainerIndexRoute,
+  TrainerMModuleRoute: TrainerMModuleRoute,
+}
+
+const TrainerRouteWithChildren =
+  TrainerRoute._addFileChildren(TrainerRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
-  CoordinatorRoute: CoordinatorRoute,
+  CoordinatorRoute: CoordinatorRouteWithChildren,
   EditorRoute: EditorRouteWithChildren,
   LoginRoute: LoginRoute,
+  PlacementRoute: PlacementRouteWithChildren,
+  RegisterRoute: RegisterRoute,
+  StudentRoute: StudentRouteWithChildren,
+  TrainerRoute: TrainerRouteWithChildren,
   LegalDocRoute: LegalDocRoute,
 }
 export const routeTree = rootRouteImport

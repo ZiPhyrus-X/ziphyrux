@@ -1,5 +1,14 @@
 import {
-  Activity, Boxes, Building2, Code2, Database, FileQuestion, LayoutDashboard, Plug, ScrollText, Settings, ShieldCheck, Users, Workflow,
+  Activity,
+  Boxes,
+  Building2,
+  FileSpreadsheet,
+  History,
+  LayoutDashboard,
+  LineChart,
+  ShieldAlert,
+  UserCheck,
+  UserCog,
   type LucideIcon,
 } from "lucide-react";
 
@@ -7,16 +16,14 @@ export type ModuleSlug = "roles" | "master-data" | "coding" | "questions" | "hea
 
 export const ADMIN_NAV: { label: string; icon: LucideIcon; to: string; slug?: ModuleSlug }[] = [
   { label: "Overview", icon: LayoutDashboard, to: "/admin" },
+  { label: "College Intelligence", icon: LineChart, to: "/admin/intelligence" },
   { label: "Colleges", icon: Building2, to: "/admin/colleges" },
-  { label: "Users & Accounts", icon: Users, to: "/admin/users" },
-  { label: "Roles & Permissions", icon: ShieldCheck, to: "/admin/m/$module", slug: "roles" },
-  { label: "Master Data", icon: Database, to: "/admin/m/$module", slug: "master-data" },
-  { label: "Coding Problems", icon: Code2, to: "/admin/m/$module", slug: "coding" },
-  { label: "Question Management", icon: FileQuestion, to: "/admin/m/$module", slug: "questions" },
-  { label: "Platform Health", icon: Activity, to: "/admin/m/$module", slug: "health" },
-  { label: "Integrations", icon: Plug, to: "/admin/m/$module", slug: "integrations" },
-  { label: "Background Jobs", icon: Workflow, to: "/admin/m/$module", slug: "jobs" },
-  { label: "Audit Logs", icon: ScrollText, to: "/admin/m/$module", slug: "audit" },
-  { label: "Settings", icon: Settings, to: "/admin/m/$module", slug: "settings" },
+  { label: "Account Governance", icon: UserCog, to: "/admin/accounts" },
+  { label: "Platform Oversight", icon: Activity, to: "/admin/oversight" },
+  { label: "Audit & Change History", icon: History, to: "/admin/audit" },
+  { label: "Visible-Value Oversight", icon: ShieldAlert, to: "/admin/overrides" },
+  { label: "Reports & Data", icon: FileSpreadsheet, to: "/admin/reports" },
+  { label: "My Account", icon: UserCheck, to: "/admin/account" },
 ];
 export const ModuleIcon = Boxes;
+

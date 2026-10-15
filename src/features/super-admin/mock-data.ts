@@ -11,7 +11,7 @@ export const COLLEGES = Array.from({ length: 23 }).map((_, i) => ({
   id: `col-${i + 1}`,
   name: ["Sample Institute of Technology", "Demo College of Engineering", "Example University", "Placeholder Polytechnic", "Test Academy of Sciences"][i % 5]! + ` ${Math.floor(i / 5) + 1}`,
   code: `SMP${String(101 + i)}`,
-  status: (["active", "active", "pending", "inactive"] as Status[])[i % 4]!,
+  status: (["active", "active", "hold", "deactive"] as Status[])[i % 4]!,
   campuses: 1 + (i % 3),
   students: 200 + ((i * 137) % 1800),
   trainers: 4 + ((i * 7) % 30),

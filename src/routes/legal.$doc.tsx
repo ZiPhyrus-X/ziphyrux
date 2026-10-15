@@ -9,7 +9,7 @@ export const Route = createFileRoute("/legal/$doc")({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: "Ziphyrus - X" },
+      { title: `${loaderData?.title ?? "Legal"} — Ziphyrus X` },
       { name: "description", content: `${loaderData?.title ?? "Legal"} for Ziphyrus X.` },
       { property: "og:title", content: `${loaderData?.title ?? "Legal"} — Ziphyrus X` },
       { property: "og:description", content: "Legal document placeholder for Ziphyrus X." },

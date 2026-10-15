@@ -3,25 +3,24 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ArrowDownRight, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EASE, LineReveal, gsap, useGsapRegister } from "@/animations/motion";
-import { useDemo } from "./demo-dialog";
 
 const STAGES = ["Learning", "Evidence", "Intelligence", "Action", "Outcomes"];
 
-function HeroGraphic() {
+function HeroGraphic({ start = true }: { start?: boolean }) {
   const ref = useRef<SVGSVGElement>(null);
   const reduce = useReducedMotion();
   useGsapRegister();
   useEffect(() => {
-    if (!ref.current || reduce) return;
+    if (!ref.current || reduce || !start) return;
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ delay: 0.9 });
+      const tl = gsap.timeline({ delay: 0.4 });
       tl.from(".hg-path", { strokeDashoffset: 1, duration: 2.2, ease: "power2.inOut" })
         .from(".hg-node", { scale: 0, transformOrigin: "center", stagger: 0.25, duration: 0.6, ease: "back.out(2)" }, 0.2)
         .from(".hg-label", { opacity: 0, y: 8, stagger: 0.25, duration: 0.6 }, 0.4);
       gsap.to(".hg-pulse", { attr: { r: 18 }, opacity: 0, duration: 2.4, repeat: -1, ease: "power1.out", stagger: 0.48 });
     }, ref);
     return () => ctx.revert();
-  }, [reduce]);
+  }, [reduce, start]);
 
   const pts = [
     [40, 260], [170, 170], [300, 210], [430, 100], [560, 60],
@@ -54,15 +53,14 @@ function HeroGraphic() {
 }
 
 export function Hero() {
-  const demo = useDemo();
   return (
     <section className="relative flex min-h-[100svh] flex-col justify-center overflow-hidden pt-28 pb-16">
       <div className="pointer-events-none absolute inset-0 grid-lines opacity-40" aria-hidden />
       <div className="container-x relative">
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 1 }}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.8, ease: EASE }}
           className="mb-10 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4"
         >
           <span className="eyebrow">College Employability Intelligence</span>
@@ -71,35 +69,32 @@ export function Hero() {
 
         <LineReveal
           as="h1"
-          immediate
+          immediate={true}
           className="font-display text-hero"
-          delay={0.25}
+          delay={0.2}
           lines={["Make employability", <em className="text-accent">measurable.</em>]}
         />
         <div className="mt-6 grid items-end gap-12 lg:grid-cols-12">
           <div className="lg:col-span-6">
             <motion.p
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9, duration: 0.8, ease: EASE }}
+              transition={{ delay: 0.35, duration: 0.8, ease: EASE }}
               className="mt-8 max-w-xl text-lg leading-relaxed text-muted-foreground"
             >
               Connect learning, coding, assessments, skills and placement intelligence in one continuous system built
               to turn student potential into measurable outcomes.
             </motion.p>
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.05, duration: 0.8, ease: EASE }}
+              transition={{ delay: 0.5, duration: 0.8, ease: EASE }}
               className="mt-10 flex flex-wrap items-center gap-3"
             >
               <Button asChild variant="hero" size="xl">
                 <a href="#platform">
                   Explore the Platform <ArrowRight />
                 </a>
-              </Button>
-              <Button variant="line" size="xl" onClick={demo}>
-                Request a Demo
               </Button>
               <a href="#intelligence" className="ml-2 inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                 Discover the Intelligence Loop <ArrowDownRight className="h-4 w-4" />
@@ -109,7 +104,7 @@ export function Hero() {
           <div className="lg:col-span-5 lg:col-start-8">
             <div className="relative mt-6 border-l border-border pl-6">
               <span className="eyebrow absolute -top-6 left-6">fig. 01 — the path of evidence</span>
-              <HeroGraphic />
+              <HeroGraphic start={true} />
             </div>
           </div>
         </div>

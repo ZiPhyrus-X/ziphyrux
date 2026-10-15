@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { Info } from "lucide-react";
+import { ArrowRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EASE, LineReveal, Reveal, SectionLabel } from "@/animations/motion";
 import { AUDIENCES, JOURNEY, NAV, PLACEMENT, PRINCIPLES, SITE, SKILLS } from "@/data/site";
 import { Wordmark } from "@/components/brand";
 import { cn } from "@/lib/utils";
-import GlyphWall from "./glyph-wall";
 
 /* SECTION 06 — Ecosystem */
 export function AudienceSection() {
@@ -255,9 +254,19 @@ export function PlatformPrinciples() {
 /* SECTION 12 — Final CTA */
 export function FinalCTA() {
   return (
-    <section aria-label="Ziphyrus X glyph wall" className="border-t border-border bg-background">
-      <div className="h-[26rem] w-full md:h-[36rem]">
-        <GlyphWall />
+    <section className="border-t border-border bg-foreground py-28 text-background md:py-40">
+      <div className="container-x">
+        <LineReveal className="max-w-5xl font-display text-statement" lines={["Build a clearer path", <>from learning to <em>employability.</em></>]} />
+        <Reveal className="mt-10 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+          <p className="max-w-md text-lg opacity-70">Bring training, evidence, skills and placement preparation into one connected platform.</p>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild size="xl" className="bg-background text-foreground hover:bg-accent hover:text-accent-foreground">
+              <Link to="/login">
+                Classroom <ArrowRight />
+              </Link>
+            </Button>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -274,7 +283,7 @@ export function Footer() {
         </div>
         <nav className="grid grid-cols-2 gap-3 text-sm md:col-span-4" aria-label="Footer">
           {NAV.map((n) => <a key={n.id} href={`#${n.id}`} className="text-muted-foreground hover:text-foreground">{n.label}</a>)}
-          <Link to="/login" className="text-muted-foreground hover:text-foreground">ClassRoom Login</Link>
+          <Link to="/login" className="text-muted-foreground hover:text-foreground">Classroom</Link>
         </nav>
         <div className="space-y-3 text-sm md:col-span-3">
           {SITE.contactEmail ? <a href={`mailto:${SITE.contactEmail}`} className="block hover:text-accent">{SITE.contactEmail}</a> : <p className="text-muted-foreground">Contact details coming soon</p>}

@@ -11,8 +11,8 @@
  */
 
 @theme inline {
-  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
-  --font-sans: "PP Neue Montreal", sans-serif;
+  --font-display: "Boska", ui-serif, Georgia, serif;
+  --font-sans: "Switzer", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   --radius-sm: calc(var(--radius) - 2px);
@@ -61,9 +61,6 @@
 :root,
 .dark {
   --radius: 0.375rem;
-  --wall-background: #1f1c1e;
-  --wall-glyph: #000000;
-  --wall-accent: #eae6de;
   --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
   --background: oklch(0.21 0.006 286);
   --foreground: oklch(0.93 0.018 80);
@@ -145,24 +142,79 @@
   * {
     border-color: var(--color-border);
   }
+  /* Ziphyrus X Signature Brand Scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-accent) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--color-accent) 65%, transparent);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-accent);
+  }
   html {
     scroll-behavior: smooth;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  html::-webkit-scrollbar,
-  body::-webkit-scrollbar {
-    display: none;
-    width: 0;
-    height: 0;
   }
   body {
     background-color: var(--color-background);
+    background-image:
+      radial-gradient(ellipse 90% 60% at 50% -20%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 70%),
+      radial-gradient(circle at 12% 25%, color-mix(in srgb, var(--color-primary) 6%, transparent) 0px, transparent 40%),
+      radial-gradient(circle at 88% 75%, color-mix(in srgb, var(--color-accent) 8%, transparent) 0px, transparent 45%),
+      radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--color-chart-2) 4%, transparent) 0px, transparent 50%);
+    background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     transition: background-color 0.4s var(--ease-editorial), color 0.4s var(--ease-editorial);
+  }
+
+  /* Universal Glassmorphic Elevation System */
+  .bg-card {
+    background-color: color-mix(in srgb, var(--color-card) 75%, transparent);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border-color: color-mix(in srgb, var(--color-border) 75%, transparent);
+  }
+
+  .bg-surface {
+    background-color: color-mix(in srgb, var(--color-surface) 75%, transparent);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border-color: color-mix(in srgb, var(--color-border) 75%, transparent);
+  }
+
+  .bg-sidebar {
+    background-color: color-mix(in srgb, var(--color-sidebar) 80%, transparent);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border-color: color-mix(in srgb, var(--color-sidebar-border) 70%, transparent);
+  }
+
+  .bg-popover {
+    background-color: color-mix(in srgb, var(--color-popover) 85%, transparent);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border-color: color-mix(in srgb, var(--color-border) 80%, transparent);
+    box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.22), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Glass overlays for dialogs and sheets */
+  [data-radix-dialog-overlay],
+  [data-slot="dialog-overlay"],
+  [data-slot="sheet-overlay"] {
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
   }
   ::selection {
     background: var(--color-accent);
@@ -176,7 +228,6 @@
 
 @utility font-display {
   font-family: var(--font-display);
-  font-weight: 400;
   letter-spacing: -0.02em;
 }
 @utility text-hero {
@@ -217,3 +268,118 @@
   background-image: linear-gradient(to right, var(--color-border) 1px, transparent 1px);
   background-size: calc(100% / 12) 100%;
 }
+
+@utility glass {
+  background-color: color-mix(in srgb, var(--color-card) 70%, transparent);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.16), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+@utility glass-card {
+  background-color: color-mix(in srgb, var(--color-card) 75%, transparent);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.14), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+}
+
+@utility glass-subtle {
+  background-color: color-mix(in srgb, var(--color-surface) 50%, transparent);
+  backdrop-filter: blur(12px) saturate(130%);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
+
+@utility glass-panel {
+  background-color: color-mix(in srgb, var(--color-card) 80%, transparent);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+@utility glass-header {
+  background-color: color-mix(in srgb, var(--color-background) 75%, transparent);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08);
+}
+
+@utility glass-interactive {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover {
+    background-color: color-mix(in srgb, var(--color-card) 85%, transparent);
+    border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+    box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.18), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* ==========================================================================
+   Recharts Global Theme Styling (High-Contrast & Theme-Adaptive)
+   ========================================================================== */
+.recharts-cartesian-axis-tick text {
+  fill: var(--color-foreground) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+.recharts-cartesian-axis-line,
+.recharts-cartesian-axis-tick-line {
+  stroke: var(--color-border) !important;
+}
+
+.recharts-cartesian-grid line {
+  stroke: var(--color-border) !important;
+  stroke-opacity: 0.3 !important;
+}
+
+.recharts-default-tooltip {
+  background-color: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 0.5rem !important;
+  color: var(--color-foreground) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45), 0 8px 10px -6px rgba(0, 0, 0, 0.35) !important;
+  padding: 8px 12px !important;
+}
+
+.recharts-tooltip-item {
+  color: var(--color-foreground) !important;
+  font-size: 12px !important;
+}
+
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-value {
+  color: var(--color-foreground) !important;
+}
+
+.recharts-tooltip-label {
+  color: var(--color-foreground) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  margin-bottom: 4px !important;
+}
+
+.recharts-rectangle.recharts-tooltip-cursor {
+  fill: rgba(125, 125, 125, 0.08) !important;
+}
+
+.recharts-curve.recharts-tooltip-cursor {
+  stroke: var(--color-border) !important;
+}
+
+.recharts-polar-grid-concentric path,
+.recharts-polar-grid-concentric circle,
+.recharts-polar-grid-angle line {
+  stroke: var(--color-border) !important;
+  stroke-opacity: 0.5 !important;
+}
+
+.recharts-polar-angle-axis-tick text {
+  fill: var(--color-foreground) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+

@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
+
+
 export function Wordmark({ className }: { className?: string }) {
   return (
     <Link to="/" className={cn("group inline-flex items-baseline gap-1.5", className)} aria-label="Ziphyrus X home">

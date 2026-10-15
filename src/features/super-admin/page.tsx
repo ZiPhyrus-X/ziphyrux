@@ -14,7 +14,7 @@ export function PageHeader({ title, desc, actions }: { title: string; desc?: str
 
 export function Metric({ label, value, note }: { label: string; value: ReactNode; note?: string }) {
   return (
-    <div className="bg-background p-5">
+    <div className="rounded-xl border border-border/70 bg-card/75 p-5 shadow-sm backdrop-blur-xl transition-all">
       <p className="eyebrow">{label}</p>
       <p className="mt-3 font-display text-4xl">{value}</p>
       {note && <p className="mt-1 text-xs text-muted-foreground">{note}</p>}
@@ -24,8 +24,8 @@ export function Metric({ label, value, note }: { label: string; value: ReactNode
 
 export function Panel({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
   return (
-    <section className="border border-border">
-      <div className="flex items-center justify-between border-b border-border px-5 py-3">
+    <section className="rounded-xl border border-border/70 bg-card/75 shadow-sm backdrop-blur-xl transition-all overflow-hidden">
+      <div className="flex items-center justify-between border-b border-border/60 bg-muted/20 px-5 py-3">
         <h2 className="text-sm font-medium">{title}</h2>
         {action}
       </div>

@@ -7,9 +7,10 @@
 export type Role = "super_admin" | "student" | "trainer" | "coordinator" | "editor" | "placement_officer" | "employer";
 
 export interface Session {
-  user: { id: string; loginId: string; name: string; role: Role; collegeId?: string; collegeName?: string };
+  user: { id: string; loginId: string; name: string; role: Role; collegeCode?: string; email?: string };
   issuedAt: string;
   source: "dev-mock" | "api";
+  token?: string;
 }
 
 export class AuthError extends Error {
@@ -24,10 +25,45 @@ export interface AuthAdapter {
 
 const KEY = "zx-session";
 
-/** Real backend adapter — not yet connected. */
+/** Real backend adapter connected to /api/v1/auth/login */
 const apiAdapter: AuthAdapter = {
-  async signIn() {
-    throw new AuthError("not_configured", "Sign-in is not connected to the Ziphyrus X backend yet.");
+  async signIn(loginId: string, password: string): Promise<Session> {
+    try {
+      const origin = typeof window !== "undefined" && window.location?.origin && window.location.origin !== "null"
+        ? window.location.origin
+        : "http://localhost:8080";
+      const res = await fetch(`${origin}/api/v1/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loginId, password }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        data?: { user: Session["user"]; token: string; issuedAt: string };
+        error?: { code: string; message: string };
+      };
+      if (!res.ok || !data.success || !data.data) {
+        if (res.status === 401 || data.error?.code === "invalid_credentials") {
+          throw new AuthError("invalid_credentials", data.error?.message ?? "The login ID or password is incorrect.");
+        }
+        if (res.status === 403) {
+          throw new AuthError("invalid_credentials", data.error?.message ?? "This account is inactive.");
+        }
+        throw new AuthError("server_error", data.error?.message ?? "The server could not be reached. Please try again.");
+      }
+      return {
+        user: data.data.user,
+        issuedAt: data.data.issuedAt ?? new Date().toISOString(),
+        source: "api",
+        token: data.data.token,
+      };
+    } catch (e) {
+      if (e instanceof AuthError) throw e;
+      if (loginId !== "sAdmin1@ziphyrus.in" && loginId !== "superadmin@ziphyrus.in") {
+        throw new AuthError("invalid_credentials", "The login ID or password is incorrect.");
+      }
+      throw new AuthError("server_error", e instanceof Error ? e.message : "Connection failed.");
+    }
   },
 };
 
@@ -36,24 +72,37 @@ const apiAdapter: AuthAdapter = {
  * labelled everywhere it appears and issues sessions marked "dev-mock".
  */
 export const DEV_MOCK_HINT = { loginId: "dev.superadmin", password: "preview-only" };
-/** Preview accounts. In api mode the role comes from the backend, never from here. */
-export const DEV_MOCK_ACCOUNTS: { loginId: string; name: string; role: Role; collegeId?: string; collegeName?: string }[] = [
-  { loginId: "dev.superadmin", name: "Preview Administrator", role: "super_admin" },
-  { loginId: "dev.editor", name: "Preview Editor", role: "editor" },
-  { loginId: "dev.coordinator", name: "Preview Coordinator", role: "coordinator", collegeId: "col-001", collegeName: "Sample Institute of Technology" },
-];
 const devMockAdapter: AuthAdapter = {
   async signIn(loginId, password) {
-    await new Promise((r) => setTimeout(r, 900));
-    if (loginId === "server.error") throw new AuthError("server_error", "The server could not be reached. Please try again.");
-    const acct = DEV_MOCK_ACCOUNTS.find((a) => a.loginId === loginId);
-    if (!acct || password !== DEV_MOCK_HINT.password)
-      throw new AuthError("invalid_credentials", "The login ID or password is incorrect.");
-    return {
-      user: { id: `dev-${acct.role}`, ...acct },
-      issuedAt: new Date().toISOString(),
-      source: "dev-mock",
-    };
+    try {
+      return await apiAdapter.signIn(loginId, password);
+    } catch (e) {
+      if (e instanceof AuthError && e.kind === "invalid_credentials") {
+        throw e;
+      }
+      if (loginId === DEV_MOCK_HINT.loginId && password === DEV_MOCK_HINT.password) {
+        return {
+          user: { id: "dev-0001", loginId, name: "Preview Administrator", role: "super_admin" },
+          issuedAt: new Date().toISOString(),
+          source: "dev-mock",
+        };
+      }
+      if (loginId === "dev.trainer" && password === "preview-only") {
+        return {
+          user: { id: "d0000000-0000-0000-0000-000000000004", loginId: "dev.trainer", name: "Rohan Deshmukh", role: "trainer", collegeCode: "SMP101", email: "rohan@smp101.edu" },
+          issuedAt: new Date().toISOString(),
+          source: "dev-mock",
+        };
+      }
+      if (loginId === "dev.placement" && password === "preview-only") {
+        return {
+          user: { id: "d0000000-0000-0000-0000-000000000011", loginId: "dev.placement", name: "Vikram Malhotra", role: "placement_officer", collegeCode: "SMP101", email: "placement@smp101.edu" },
+          issuedAt: new Date().toISOString(),
+          source: "dev-mock",
+        };
+      }
+      throw e;
+    }
   },
 };
 
@@ -82,10 +131,12 @@ export const authService = {
 };
 
 /** Where a verified role lands after sign-in. Unbuilt workspaces return null. */
-export type WorkspaceHome = "/admin" | "/editor" | "/coordinator";
-export function homeForRole(role: Role): WorkspaceHome | null {
+export function homeForRole(role: Role): "/admin" | "/editor" | "/coordinator" | "/student" | "/trainer" | "/placement" | null {
   if (role === "super_admin") return "/admin";
   if (role === "editor") return "/editor";
   if (role === "coordinator") return "/coordinator";
+  if (role === "student") return "/student";
+  if (role === "trainer") return "/trainer";
+  if (role === "placement_officer") return "/placement";
   return null;
 }
