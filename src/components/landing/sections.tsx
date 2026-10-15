@@ -90,47 +90,10 @@ export function StudentJourney() {
         <SectionLabel n="05">The student journey</SectionLabel>
         <LineReveal className="mt-10 max-w-5xl font-display text-section" lines={["From activity to evidence.", <em className="text-accent">From evidence to progress.</em>]} />
 
-        {/* Responsive Mobile / Tablet Header Navigation (< lg) */}
-        <div className="mt-12 flex items-center justify-between border-b border-line pb-4 lg:hidden">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-semibold text-accent">
-              Stage {String(activeIdx + 1).padStart(2, "0")} / {String(JOURNEY.length).padStart(2, "0")}
-            </span>
-            <span className="text-muted-foreground">·</span>
-            <span className="text-sm font-medium text-foreground">
-              {JOURNEY[activeIdx]!.k}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={handlePrev}
-              disabled={s === 0}
-              aria-label="Previous journey stage"
-              className="h-8 w-8 rounded-sm border-line hover:border-foreground"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={handleNext}
-              disabled={s === JOURNEY.length - 1}
-              aria-label="Next journey stage"
-              className="h-8 w-8 rounded-sm border-line hover:border-foreground"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
         {/* Timeline Track: Smoothly scrollable with snap on mobile, full 8-column grid on desktop */}
         <div
           ref={trackRef}
-          className="mt-8 lg:mt-16 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-3 no-scrollbar"
+          className="mt-16 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-3 no-scrollbar"
         >
           <ol
             onMouseLeave={() => setHovered(null)}
