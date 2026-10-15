@@ -80,4 +80,30 @@ describe("StudentJourney Responsive Interactive Component", () => {
     });
     expect(screen.getByText("Offer secured")).toBeInTheDocument();
   });
+
+  it("makes hovered step active on mouseenter and restores original on mouseleave", async () => {
+    render(<StudentJourney />);
+
+    // Initially stage 1 (Learning) is active
+    expect(screen.getByText("Completes 'Data Structures II' module")).toBeInTheDocument();
+
+    const stage2Button = screen.getByRole("button", { name: /02 Coding/i });
+
+    // Hover over stage 2 (Coding)
+    fireEvent.mouseEnter(stage2Button);
+
+    await waitFor(() => {
+      expect(screen.getByText("Attempts 14 graph problems")).toBeInTheDocument();
+    });
+    expect(screen.getByText("9 accepted")).toBeInTheDocument();
+
+    // Mouse leaves
+    fireEvent.mouseLeave(stage2Button);
+
+    // Reverts back to stage 1 (Learning)
+    await waitFor(() => {
+      expect(screen.getByText("Completes 'Data Structures II' module")).toBeInTheDocument();
+    });
+    expect(screen.getByText("6 sessions")).toBeInTheDocument();
+  });
 });

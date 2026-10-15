@@ -60,6 +60,7 @@ export function AudienceSection() {
 /* SECTION 07 — Student journey (interactive timeline, illustrative data) */
 export function StudentJourney() {
   const [s, setS] = useState(0);
+  const [hovered, setHovered] = useState<number | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const stepRefs = useRef<(HTMLLIElement | null)[]>([]);
 
@@ -72,8 +73,16 @@ export function StudentJourney() {
     });
   }, [s]);
 
-  const handlePrev = () => setS((prev) => Math.max(0, prev - 1));
-  const handleNext = () => setS((prev) => Math.min(JOURNEY.length - 1, prev + 1));
+  const handlePrev = () => {
+    setHovered(null);
+    setS((prev) => Math.max(0, prev - 1));
+  };
+  const handleNext = () => {
+    setHovered(null);
+    setS((prev) => Math.min(JOURNEY.length - 1, prev + 1));
+  };
+
+  const activeIdx = hovered !== null ? hovered : s;
 
   return (
     <section id="journey" className="border-t border-border py-28 md:py-36">
@@ -85,11 +94,11 @@ export function StudentJourney() {
         <div className="mt-12 flex items-center justify-between border-b border-line pb-4 lg:hidden">
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs font-semibold text-accent">
-              Stage {String(s + 1).padStart(2, "0")} / {String(JOURNEY.length).padStart(2, "0")}
+              Stage {String(activeIdx + 1).padStart(2, "0")} / {String(JOURNEY.length).padStart(2, "0")}
             </span>
             <span className="text-muted-foreground">·</span>
             <span className="text-sm font-medium text-foreground">
-              {JOURNEY[s]!.k}
+              {JOURNEY[activeIdx]!.k}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -123,43 +132,61 @@ export function StudentJourney() {
           ref={trackRef}
           className="mt-8 lg:mt-16 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-3 no-scrollbar"
         >
-          <ol className="flex min-w-max lg:min-w-0 lg:w-full lg:grid lg:grid-cols-8 border-t border-line">
-            {JOURNEY.map((j, idx) => (
-              <li
-                key={j.k}
-                ref={(el) => {
-                  stepRefs.current[idx] = el;
-                }}
-                className="w-32 shrink-0 snap-center pr-4 sm:w-36 lg:w-auto lg:shrink lg:pr-0"
-              >
-                <button
-                  onClick={() => setS(idx)}
-                  className="group w-full pt-5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-                  aria-pressed={s === idx}
+          <ol
+            onMouseLeave={() => setHovered(null)}
+            className="flex min-w-max lg:min-w-0 lg:w-full lg:grid lg:grid-cols-8 border-t border-line"
+          >
+            {JOURNEY.map((j, idx) => {
+              const isItemActive = activeIdx === idx;
+              return (
+                <li
+                  key={j.k}
+                  ref={(el) => {
+                    stepRefs.current[idx] = el;
+                  }}
+                  className="w-32 shrink-0 snap-center pr-4 sm:w-36 lg:w-auto lg:shrink lg:pr-0"
                 >
-                  <span
-                    className={cn(
-                      "-mt-[1.45rem] mb-4 block h-2.5 w-2.5 rounded-full border transition-all duration-300",
-                      idx <= s
-                        ? "border-accent bg-accent shadow-[0_0_8px_rgba(234,179,8,0.4)]"
-                        : "border-line bg-background",
-                      idx === s ? "scale-125 ring-2 ring-accent/30" : "",
-                    )}
-                  />
-                  <span className="eyebrow">{String(idx + 1).padStart(2, "0")}</span>
-                  <span
-                    className={cn(
-                      "mt-1 block text-sm font-medium transition-colors break-words",
-                      idx === s
-                        ? "text-foreground font-semibold"
-                        : "text-muted-foreground group-hover:text-foreground",
-                    )}
+                  <button
+                    onClick={() => {
+                      setS(idx);
+                      setHovered(null);
+                    }}
+                    onMouseEnter={() => setHovered(idx)}
+                    onMouseLeave={() => setHovered(null)}
+                    className="group w-full pt-5 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+                    aria-pressed={isItemActive}
                   >
-                    {j.k}
-                  </span>
-                </button>
-              </li>
-            ))}
+                    <span
+                      className={cn(
+                        "-mt-[1.45rem] mb-4 block h-2.5 w-2.5 rounded-full border transition-all duration-300",
+                        idx <= activeIdx
+                          ? "border-accent bg-accent shadow-[0_0_8px_rgba(234,179,8,0.4)]"
+                          : "border-line bg-background",
+                        isItemActive ? "scale-125 ring-2 ring-accent/30" : "",
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "eyebrow transition-colors duration-200",
+                        isItemActive ? "text-accent" : "text-muted-foreground",
+                      )}
+                    >
+                      {String(idx + 1).padStart(2, "0")}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-1 block text-sm font-medium transition-colors duration-200 break-words",
+                        isItemActive
+                          ? "text-foreground font-semibold"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {j.k}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ol>
         </div>
 
@@ -169,11 +196,16 @@ export function StudentJourney() {
             <button
               key={item.k}
               type="button"
-              onClick={() => setS(idx)}
+              onClick={() => {
+                setS(idx);
+                setHovered(null);
+              }}
+              onMouseEnter={() => setHovered(idx)}
+              onMouseLeave={() => setHovered(null)}
               aria-label={`Jump to stage 0${idx + 1}: ${item.k}`}
               className={cn(
-                "h-1.5 rounded-full transition-all duration-300",
-                idx === s ? "w-6 bg-accent" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60"
+                "h-1.5 rounded-full transition-all duration-300 cursor-pointer",
+                idx === activeIdx ? "w-6 bg-accent" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60",
               )}
             />
           ))}
@@ -183,23 +215,23 @@ export function StudentJourney() {
         <div className="mt-8 lg:mt-10 grid gap-6 border border-line p-6 sm:p-8 md:grid-cols-[1fr_auto] md:items-end md:p-10">
           <AnimatePresence mode="wait">
             <motion.div
-              key={s}
+              key={activeIdx}
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -12 }}
               transition={{ duration: 0.35, ease: EASE }}
             >
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-accent">0{s + 1}</span>
+                <span className="font-mono text-xs text-accent">0{activeIdx + 1}</span>
                 <span className="text-muted-foreground/60">/</span>
-                <p className="eyebrow">{JOURNEY[s]!.k}</p>
+                <p className="eyebrow">{JOURNEY[activeIdx]!.k}</p>
               </div>
-              <p className="mt-3 font-display text-2xl sm:text-3xl md:text-4xl">{JOURNEY[s]!.v}</p>
+              <p className="mt-3 font-display text-2xl sm:text-3xl md:text-4xl">{JOURNEY[activeIdx]!.v}</p>
             </motion.div>
           </AnimatePresence>
           <div className="flex flex-row md:flex-col items-center justify-between md:items-end gap-4 border-t border-line/60 pt-4 md:border-t-0 md:pt-0">
             <div className="text-left md:text-right">
-              <p className="font-mono text-xl sm:text-2xl text-accent">{JOURNEY[s]!.m}</p>
+              <p className="font-mono text-xl sm:text-2xl text-accent">{JOURNEY[activeIdx]!.m}</p>
               <p className="mt-1 eyebrow">Illustrative sample</p>
             </div>
             {/* Quick Next / Prev navigation inside card on mobile */}
