@@ -57,6 +57,7 @@ export const JOURNEY = [
   { k: "Skill Gap", v: "Shortest-path algorithms", m: "gap: medium" },
   { k: "Recommendation", v: "Targeted Dijkstra / BFS practice set", m: "8 problems" },
   { k: "Improvement", v: "Re-assessment on the same skill", m: "78 / 100" },
+  { k: "Final Deployment", v: "Qualified for enterprise campus drives and verified career placement", m: "Offer secured" },
 ];
 
 /** ILLUSTRATIVE skill model for the visualization. */

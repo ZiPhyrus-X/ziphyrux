@@ -66,7 +66,7 @@ export function StudentJourney() {
         <SectionLabel n="05">The student journey</SectionLabel>
         <LineReveal className="mt-10 max-w-5xl font-display text-section" lines={["From activity to evidence.", <em className="text-accent">From evidence to progress.</em>]} />
         <div className="mt-16 no-scrollbar overflow-x-auto pb-2">
-          <ol className="grid min-w-[760px] grid-cols-7 border-t border-line">
+          <ol className="grid min-w-[860px] grid-cols-8 border-t border-line">
             {JOURNEY.map((j, idx) => (
               <li key={j.k}>
                 <button onClick={() => setS(idx)} className="group w-full pt-5 text-left" aria-pressed={s === idx}>
