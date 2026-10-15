@@ -54,7 +54,7 @@ function HeroGraphic({ start = true }: { start?: boolean }) {
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-[100svh] flex-col justify-center overflow-hidden pt-28 pb-16">
+    <section id="hero" className="relative flex min-h-[100svh] flex-col justify-center overflow-hidden pt-28 pb-16">
       <div className="pointer-events-none absolute inset-0 grid-lines opacity-40" aria-hidden />
       <div className="container-x relative">
         <motion.div

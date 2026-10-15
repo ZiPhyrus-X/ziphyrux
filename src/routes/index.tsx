@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DemoProvider } from "@/components/landing/demo-dialog";
+import { LandingPreloader } from "@/components/landing/landing-preloader";
 import { Navigation } from "@/components/landing/navigation";
 import { Hero } from "@/components/landing/hero";
 import { IntelligenceLoop, OpeningStatement, PlatformOverview } from "@/components/landing/story";
@@ -26,21 +27,23 @@ export const Route = createFileRoute("/")({
 function Index() {
   return (
     <DemoProvider>
-      <Navigation />
-      <main>
-        <Hero />
-        <OpeningStatement />
-        <PlatformOverview />
-        <IntelligenceLoop />
-        <AudienceSection />
-        <StudentJourney />
-        <IntelligenceVisualization />
-        <PlacementIntelligence />
-        <InstitutionSection />
-        <PlatformPrinciples />
-        <FinalCTA />
-      </main>
-      <Footer />
+      <LandingPreloader>
+        <Navigation />
+        <main>
+          <Hero />
+          <OpeningStatement />
+          <PlatformOverview />
+          <IntelligenceLoop />
+          <AudienceSection />
+          <StudentJourney />
+          <IntelligenceVisualization />
+          <PlacementIntelligence />
+          <InstitutionSection />
+          <PlatformPrinciples />
+          <FinalCTA />
+        </main>
+        <Footer />
+      </LandingPreloader>
     </DemoProvider>
   );
 }

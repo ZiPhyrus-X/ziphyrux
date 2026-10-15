@@ -46,4 +46,5 @@ supabase/.temp/
 *.njsproj
 *.sln
 *.sw?
-
+# Prototypes
+web_preloader/

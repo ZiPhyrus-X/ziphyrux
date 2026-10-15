@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { NAV } from "@/data/site";
 import { cn } from "@/lib/utils";
 import { EASE } from "@/animations/motion";
+import { usePreloaderContext } from "./landing-preloader";
 
 export function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<string>("");
+  const { isNavVisible } = usePreloaderContext();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -38,10 +40,11 @@ export function Navigation() {
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={isNavVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
       transition={{ duration: 0.6, ease: EASE }}
       className={cn(
         "fixed inset-x-0 top-0 z-50 transition-all duration-500",
+        !isNavVisible && "pointer-events-none opacity-0 -translate-y-5",
         scrolled ? "border-b border-border/60 bg-background/75 backdrop-blur-xl shadow-sm" : "border-b border-transparent",
       )}
     >
