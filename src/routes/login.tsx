@@ -4,13 +4,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion, useReducedMotion } from "framer-motion";
-import { AlertCircle, Check, Eye, EyeOff, FlaskConical, Loader2 } from "lucide-react";
+import { AlertCircle, Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Wordmark, ThemeToggle } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AUTH_MODE, AuthError, DEV_MOCK_HINT, authService, homeForRole } from "@/lib/auth/service";
+import { AuthError, authService, homeForRole } from "@/lib/auth/service";
 import { EASE } from "@/animations/motion";
 import { LOOP } from "@/data/site";
 
@@ -94,16 +94,6 @@ function LoginPage() {
         >
           <h2 className="font-display text-5xl">Sign in</h2>
           <p className="mt-2 text-sm text-muted-foreground">Use the login ID issued by your institution or platform administrator.</p>
-
-          {AUTH_MODE === "dev-mock" && (
-            <div className="mt-6 flex gap-3 border border-dashed border-warning/60 p-3 text-xs text-muted-foreground" role="note">
-              <FlaskConical className="h-4 w-4 shrink-0 text-warning" />
-              <p>
-                <strong className="text-foreground">Development preview.</strong> Sign-in is simulated and not connected to a real backend.
-                Use <code className="font-mono text-foreground">{DEV_MOCK_HINT.loginId}</code> / <code className="font-mono text-foreground">{DEV_MOCK_HINT.password}</code>.
-              </p>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-8 space-y-5">
             <div className="space-y-2">
