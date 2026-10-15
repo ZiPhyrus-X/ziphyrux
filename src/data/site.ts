@@ -78,6 +78,7 @@ export const PLACEMENT = [
   { k: "Interview", d: "Employer-led evaluation, coordinated through the platform." },
   { k: "Selection", d: "The employer's decision. Ziphyrus X records it; it does not make it." },
   { k: "Placement Outcome", d: "The final, tracked result — which becomes new evidence for the loop." },
+  { k: "Career Onboarding", d: "Verified offer acceptance, compliance documentation, and corporate transition." },
 ];
 
 export const PRINCIPLES = [

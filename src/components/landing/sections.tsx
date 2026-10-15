@@ -315,29 +315,89 @@ export function IntelligenceVisualization() {
 /* SECTION 09 — Placement intelligence */
 export function PlacementIntelligence() {
   const [s, setS] = useState(1);
+  const [hovered, setHovered] = useState<number | null>(null);
+
+  const activeIdx = hovered !== null ? hovered : s;
+
   return (
     <section className="border-t border-border bg-surface py-28 md:py-36">
       <div className="container-x">
         <SectionLabel n="07">Placement intelligence</SectionLabel>
         <LineReveal className="mt-10 font-display text-statement" lines={["Readiness is", <em className="text-accent">more than a score.</em>]} />
-        <div className="mt-16 grid grid-cols-2 gap-px bg-border sm:grid-cols-4 xl:grid-cols-7">
-          {PLACEMENT.map((p, i) => (
-            <Button
-              key={p.k}
-              variant="ghost"
-              aria-pressed={s === i}
-              onClick={() => setS(i)}
-              onMouseEnter={() => setS(i)}
-              className={cn("h-auto min-h-[9rem] min-w-0 flex-col items-start justify-between gap-6 whitespace-normal rounded-none p-4 text-left", s === i ? "bg-foreground text-background hover:bg-foreground hover:text-background" : "bg-surface hover:bg-muted")}
-            >
-              <span className="font-mono text-xs opacity-60">{String(i + 1).padStart(2, "0")}</span>
-              <span className="w-full font-display text-xl leading-tight tracking-normal 2xl:text-2xl">{p.k}</span>
-            </Button>
-          ))}
+        <div
+          onMouseLeave={() => setHovered(null)}
+          className="mt-16 grid grid-cols-2 gap-px bg-border sm:grid-cols-4 xl:grid-cols-8"
+        >
+          {PLACEMENT.map((p, i) => {
+            const isHovered = hovered === i;
+            const isSelected = s === i;
+
+            return (
+              <button
+                key={p.k}
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => {
+                  setS(i);
+                  setHovered(null);
+                }}
+                onPointerEnter={(e) => {
+                  if (e.pointerType !== "touch") {
+                    setHovered(i);
+                  }
+                }}
+                onPointerLeave={() => setHovered(null)}
+                className={cn(
+                  "group relative flex h-auto min-h-[9rem] min-w-0 flex-col items-start justify-between gap-6 p-4 text-left cursor-pointer transition-colors duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
+                  isHovered
+                    ? "bg-foreground text-background shadow-md z-10"
+                    : isSelected
+                      ? "bg-surface text-foreground ring-1 ring-inset ring-accent/60"
+                      : "bg-surface text-muted-foreground hover:bg-muted/30 hover:text-foreground",
+                )}
+              >
+                {/* Active accent top bar on selected item when not hovered */}
+                {isSelected && !isHovered && (
+                  <span className="absolute inset-x-0 top-0 h-0.5 bg-accent" />
+                )}
+                <span
+                  className={cn(
+                    "font-mono text-xs transition-colors duration-200",
+                    isHovered
+                      ? "text-background/70 font-semibold"
+                      : isSelected
+                        ? "text-accent font-semibold"
+                        : "opacity-60",
+                  )}
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span
+                  className={cn(
+                    "w-full font-display text-xl leading-tight tracking-normal transition-colors duration-200 2xl:text-2xl break-words",
+                    isHovered
+                      ? "text-background font-semibold"
+                      : isSelected
+                        ? "text-foreground font-semibold"
+                        : "text-foreground/90 group-hover:text-foreground",
+                  )}
+                >
+                  {p.k}
+                </span>
+              </button>
+            );
+          })}
         </div>
         <AnimatePresence mode="wait">
-          <motion.p key={s} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="mt-10 max-w-3xl text-xl leading-relaxed">
-            {PLACEMENT[s]?.d}
+          <motion.p
+            key={activeIdx}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-10 max-w-3xl text-xl leading-relaxed"
+          >
+            {PLACEMENT[activeIdx]?.d}
           </motion.p>
         </AnimatePresence>
         <p className="mt-6 text-sm text-muted-foreground">Ziphyrus X informs preparation. It does not guarantee jobs or placements.</p>
