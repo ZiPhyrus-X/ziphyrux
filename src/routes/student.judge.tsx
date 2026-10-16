@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useLayoutEffect } from "react";
 import { format } from "date-fns";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -73,6 +73,8 @@ export const Route = createFileRoute("/student/judge")({
   }),
   component: StudentJudgePage,
 });
+
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 function formatLinePrettier(line: string): string {
   // Ensure space after commas (except inside strings)
@@ -317,6 +319,9 @@ function StudentJudgePage() {
   const [draftSaved, setDraftSaved] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
+  const [undoStack, setUndoStack] = useState<Array<{ code: string; selStart: number; selEnd: number }>>([]);
+  const [redoStack, setRedoStack] = useState<Array<{ code: string; selStart: number; selEnd: number }>>([]);
+  const pendingCursorPos = useRef<{ start: number; end: number } | null>(null);
 
   // Execution State
   const [running, setRunning] = useState(false);
@@ -518,6 +523,29 @@ function StudentJudgePage() {
     }
   };
 
+  // Cursor preservation across programmatic state updates
+  useIsomorphicLayoutEffect(() => {
+    if (pendingCursorPos.current && textareaRef.current) {
+      const { start, end } = pendingCursorPos.current;
+      textareaRef.current.selectionStart = start;
+      textareaRef.current.selectionEnd = end;
+      updateCursorPos(textareaRef.current);
+      pendingCursorPos.current = null;
+    }
+  }, [code]);
+
+  const applyCodeChange = (newCode: string, cursorStart: number, cursorEnd: number) => {
+    const curStart = textareaRef.current?.selectionStart ?? cursorStart;
+    const curEnd = textareaRef.current?.selectionEnd ?? cursorEnd;
+    const currentCode = textareaRef.current?.value ?? code;
+    setUndoStack((prev) => [...prev.slice(-50), { code: currentCode, selStart: curStart, selEnd: curEnd }]);
+    setRedoStack([]);
+    pendingCursorPos.current = { start: cursorStart, end: cursorEnd };
+    setCode(newCode);
+    setIsDirty(true);
+    setDraftSaved(false);
+  };
+
   const handleCursorEvent = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
     updateCursorPos(e.currentTarget);
   };
@@ -529,19 +557,15 @@ function StudentJudgePage() {
     updateCursorPos(e.target);
   };
 
-  // Full-line count & memoized VS Code syntax-highlighted HTML lines
+  // Full-line count & memoized VS Code syntax-highlighted HTML
   const codeLines = useMemo(() => (code || "").split("\n"), [code]);
   const lineCount = useMemo(() => Math.max(codeLines.length, 24), [codeLines.length]);
 
-  const highlightedCodeLinesList = useMemo(() => {
-    const lines = highlightCodeLines(code, language, { isDark: true });
-    while (lines.length < lineCount) {
-      lines.push("");
-    }
-    return lines;
-  }, [code, language, lineCount]);
+  const highlightedHtml = useMemo(() => {
+    return highlightCode(code, language, { isDark: true });
+  }, [code, language]);
 
-  // Tab, Enter auto-indent, auto-closing brackets, smart backspace & Prettier keyboard shortcut
+  // Tab, Enter auto-indent, auto-closing brackets, smart backspace, undo/redo & Prettier keyboard shortcut
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // 1. Prettier formatting shortcut: Alt+Shift+F or Ctrl+Shift+F or Cmd+Shift+F
     if (e.shiftKey && (e.altKey || e.ctrlKey || e.metaKey) && (e.key === "f" || e.key === "F")) {
@@ -555,37 +579,34 @@ function StudentJudgePage() {
     const end = target.selectionEnd;
     const val = target.value;
 
-    const insertAtCursor = (text: string, cursorOffset?: number) => {
-      let inserted = false;
-      try {
-        inserted = document.execCommand("insertText", false, text);
-      } catch {
-        inserted = false;
-      }
-      if (!inserted) {
-        const newCode = val.substring(0, start) + text + val.substring(end);
-        setCode(newCode);
-        const nextPos = start + (cursorOffset !== undefined ? cursorOffset : text.length);
-        setTimeout(() => {
-          target.selectionStart = target.selectionEnd = nextPos;
-          updateCursorPos(target);
-        }, 0);
-      } else {
-        if (cursorOffset !== undefined) {
-          const nextPos = start + cursorOffset;
-          setTimeout(() => {
-            target.selectionStart = target.selectionEnd = nextPos;
-            updateCursorPos(target);
-          }, 0);
-        } else {
-          setTimeout(() => updateCursorPos(target), 0);
+    // 2. Undo / Redo shortcuts (Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z)
+    if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+      if (e.key === "z" && !e.shiftKey) {
+        if (undoStack.length > 0) {
+          e.preventDefault();
+          const last = undoStack[undoStack.length - 1];
+          setUndoStack((prev) => prev.slice(0, -1));
+          setRedoStack((prev) => [...prev.slice(-50), { code, selStart: start, selEnd: end }]);
+          pendingCursorPos.current = { start: last.selStart, end: last.selEnd };
+          setCode(last.code);
+          setIsDirty(true);
+          return;
+        }
+      } else if ((e.key === "y" && !e.shiftKey) || (e.key === "z" && e.shiftKey)) {
+        if (redoStack.length > 0) {
+          e.preventDefault();
+          const next = redoStack[redoStack.length - 1];
+          setRedoStack((prev) => prev.slice(0, -1));
+          setUndoStack((prev) => [...prev.slice(-50), { code, selStart: start, selEnd: end }]);
+          pendingCursorPos.current = { start: next.selStart, end: next.selEnd };
+          setCode(next.code);
+          setIsDirty(true);
+          return;
         }
       }
-      setIsDirty(true);
-      setDraftSaved(false);
-    };
+    }
 
-    // 2. Tab & Shift+Tab handling
+    // 3. Tab & Shift+Tab handling
     if (e.key === "Tab") {
       e.preventDefault();
 
@@ -595,8 +616,8 @@ function StudentJudgePage() {
         const lineStart = beforeSel.lastIndexOf("\n") + 1;
         const selectedText = val.substring(lineStart, end);
         const lines = selectedText.split("\n");
-        let charsRemovedFirstLine = 0;
-        let totalCharsRemoved = 0;
+        let firstLineRemoved = 0;
+        let totalRemoved = 0;
 
         const unindentedLines = lines.map((l, idx) => {
           let spacesToRemove = 0;
@@ -606,21 +627,14 @@ function StudentJudgePage() {
           if (spacesToRemove === 0 && l[0] === "\t") {
             spacesToRemove = 1;
           }
-          if (idx === 0) charsRemovedFirstLine = spacesToRemove;
-          totalCharsRemoved += spacesToRemove;
+          if (idx === 0) firstLineRemoved = spacesToRemove;
+          totalRemoved += spacesToRemove;
           return l.substring(spacesToRemove);
         });
 
         const replacement = unindentedLines.join("\n");
         const newCode = val.substring(0, lineStart) + replacement + val.substring(end);
-        setCode(newCode);
-        setIsDirty(true);
-        setDraftSaved(false);
-        setTimeout(() => {
-          target.selectionStart = Math.max(lineStart, start - charsRemovedFirstLine);
-          target.selectionEnd = Math.max(lineStart, end - totalCharsRemoved);
-          updateCursorPos(target);
-        }, 0);
+        applyCodeChange(newCode, Math.max(lineStart, start - firstLineRemoved), Math.max(lineStart, end - totalRemoved));
         return;
       }
 
@@ -633,23 +647,17 @@ function StudentJudgePage() {
         const indentedLines = lines.map((l) => "    " + l);
         const replacement = indentedLines.join("\n");
         const newCode = val.substring(0, lineStart) + replacement + val.substring(end);
-        setCode(newCode);
-        setIsDirty(true);
-        setDraftSaved(false);
-        setTimeout(() => {
-          target.selectionStart = start + 4;
-          target.selectionEnd = end + 4 * lines.length;
-          updateCursorPos(target);
-        }, 0);
+        applyCodeChange(newCode, start + 4, end + 4 * lines.length);
         return;
       }
 
       // Single cursor Tab: insert 4 spaces
-      insertAtCursor("    ", 4);
+      const newCode = val.substring(0, start) + "    " + val.substring(end);
+      applyCodeChange(newCode, start + 4, start + 4);
       return;
     }
 
-    // 3. Enter (Smart Auto-Indentation & Brace Expansion)
+    // 4. Enter (Smart Auto-Indentation & Brace Expansion)
     if (e.key === "Enter") {
       e.preventDefault();
       const beforeCursor = val.substring(0, start);
@@ -676,25 +684,35 @@ function StudentJudgePage() {
 
       if (isBetweenBrackets) {
         const textToInsert = "\n" + currentIndent + "    \n" + currentIndent;
-        insertAtCursor(textToInsert, 1 + currentIndent.length + 4);
+        const newCode = val.substring(0, start) + textToInsert + val.substring(end);
+        const newPos = start + 1 + currentIndent.length + 4;
+        applyCodeChange(newCode, newPos, newPos);
       } else if (opensBlock) {
-        insertAtCursor("\n" + currentIndent + "    ");
+        const textToInsert = "\n" + currentIndent + "    ";
+        const newCode = val.substring(0, start) + textToInsert + val.substring(end);
+        const newPos = start + textToInsert.length;
+        applyCodeChange(newCode, newPos, newPos);
       } else {
-        insertAtCursor("\n" + currentIndent);
+        const textToInsert = "\n" + currentIndent;
+        const newCode = val.substring(0, start) + textToInsert + val.substring(end);
+        const newPos = start + textToInsert.length;
+        applyCodeChange(newCode, newPos, newPos);
       }
       return;
     }
 
-    // 4. Closing character skip-over
+    // 5. Closing character skip-over
     const CLOSING_CHARS = new Set([")", "]", "}", '"', "'", "`"]);
     if (CLOSING_CHARS.has(e.key) && start === end && val[start] === e.key) {
       e.preventDefault();
-      target.selectionStart = target.selectionEnd = start + 1;
-      updateCursorPos(target);
+      if (textareaRef.current) {
+        textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 1;
+        updateCursorPos(textareaRef.current);
+      }
       return;
     }
 
-    // 5. Auto-closing pairs
+    // 6. Auto-closing pairs
     const PAIRS: Record<string, string> = {
       "(": ")",
       "[": "]",
@@ -710,7 +728,8 @@ function StudentJudgePage() {
       if (start !== end) {
         e.preventDefault();
         const selected = val.substring(start, end);
-        insertAtCursor(e.key + selected + closeChar, 1 + selected.length);
+        const newCode = val.substring(0, start) + e.key + selected + closeChar + val.substring(end);
+        applyCodeChange(newCode, start + 1, start + 1 + selected.length);
         return;
       }
 
@@ -718,12 +737,16 @@ function StudentJudgePage() {
         return;
       }
 
-      e.preventDefault();
-      insertAtCursor(e.key + closeChar, 1);
-      return;
+      const nextChar = val[start] ?? "";
+      if (!nextChar || /[\s)\]},;]/.test(nextChar)) {
+        e.preventDefault();
+        const newCode = val.substring(0, start) + e.key + closeChar + val.substring(end);
+        applyCodeChange(newCode, start + 1, start + 1);
+        return;
+      }
     }
 
-    // 6. Smart Backspace
+    // 7. Smart Backspace
     if (e.key === "Backspace" && start === end && start > 0) {
       const charBefore = val[start - 1];
       const charAfter = val[start];
@@ -738,13 +761,7 @@ function StudentJudgePage() {
       ) {
         e.preventDefault();
         const newCode = val.substring(0, start - 1) + val.substring(start + 1);
-        setCode(newCode);
-        setIsDirty(true);
-        setDraftSaved(false);
-        setTimeout(() => {
-          target.selectionStart = target.selectionEnd = start - 1;
-          updateCursorPos(target);
-        }, 0);
+        applyCodeChange(newCode, start - 1, start - 1);
         return;
       }
 
@@ -753,13 +770,7 @@ function StudentJudgePage() {
       if (textBeforeOnLine.length >= 4 && /^ +$/.test(textBeforeOnLine) && textBeforeOnLine.length % 4 === 0) {
         e.preventDefault();
         const newCode = val.substring(0, start - 4) + val.substring(start);
-        setCode(newCode);
-        setIsDirty(true);
-        setDraftSaved(false);
-        setTimeout(() => {
-          target.selectionStart = target.selectionEnd = start - 4;
-          updateCursorPos(target);
-        }, 0);
+        applyCodeChange(newCode, start - 4, start - 4);
         return;
       }
     }
@@ -778,9 +789,7 @@ function StudentJudgePage() {
     try {
       const formatted = formatSourceCode(code, language);
       if (formatted !== code) {
-        setCode(formatted);
-        setIsDirty(true);
-        setDraftSaved(false);
+        applyCodeChange(formatted, textareaRef.current?.selectionStart ?? 0, textareaRef.current?.selectionEnd ?? 0);
         toast.success("Code formatted with Prettier ✨");
       } else {
         toast.info("Code is already well-formatted with Prettier.");
@@ -1560,7 +1569,7 @@ function StudentJudgePage() {
                 }
               }}
             >
-              <div className="flex min-w-full min-h-full">
+              <div className="flex min-w-full w-max min-h-full">
                 {/* Sticky Line Numbers Gutter */}
                 <div
                   className="sticky left-0 top-0 z-20 shrink-0 select-none bg-[#1e1e1e] border-r border-[#2d2d2d] text-right text-[#858585] py-2.5 pr-3 pl-2"
@@ -1586,7 +1595,7 @@ function StudentJudgePage() {
 
                 {/* Code Body Grid: Pre layer and Textarea in EXACT same cell */}
                 <div
-                  className="relative flex-1 min-w-0"
+                  className="relative flex-1 min-w-[500px] min-h-full"
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1fr",
@@ -1610,11 +1619,12 @@ function StudentJudgePage() {
                       margin: 0,
                       padding: "10px 14px",
                       boxSizing: "border-box",
-                      fontFamily: 'Consolas, "Fira Code", Monaco, Menlo, "Courier New", monospace',
+                      fontFamily: '"JetBrains Mono", Consolas, "Fira Code", Monaco, Menlo, monospace',
                       fontSize: "13px",
                       lineHeight: "24px",
                       letterSpacing: "0px",
                       wordSpacing: "0px",
+                      fontVariantLigatures: "none",
                       tabSize: 4,
                       MozTabSize: 4,
                       whiteSpace: "pre",
@@ -1628,22 +1638,10 @@ function StudentJudgePage() {
                       outline: "none",
                       overflow: "hidden",
                     }}
-                  >
-                    <code>
-                      {highlightedCodeLinesList.map((lineHtml, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            height: "24px",
-                            lineHeight: "24px",
-                            minHeight: "24px",
-                            whiteSpace: "pre",
-                          }}
-                          dangerouslySetInnerHTML={{ __html: lineHtml || "&nbsp;" }}
-                        />
-                      ))}
-                    </code>
-                  </pre>
+                    dangerouslySetInnerHTML={{
+                      __html: (highlightedHtml || "&nbsp;") + (code.endsWith("\n") ? "\n " : ""),
+                    }}
+                  />
 
                   {/* Layer 2: Textarea (Front, transparent text, caret & selection visible) */}
                   <textarea
@@ -1654,6 +1652,10 @@ function StudentJudgePage() {
                     onKeyUp={handleCursorEvent}
                     onClick={handleCursorEvent}
                     onSelect={handleCursorEvent}
+                    onScroll={(e) => {
+                      if (e.currentTarget.scrollTop !== 0) e.currentTarget.scrollTop = 0;
+                      if (e.currentTarget.scrollLeft !== 0) e.currentTarget.scrollLeft = 0;
+                    }}
                     spellCheck={false}
                     autoCapitalize="off"
                     autoComplete="off"
@@ -1663,11 +1665,12 @@ function StudentJudgePage() {
                       margin: 0,
                       padding: "10px 14px",
                       boxSizing: "border-box",
-                      fontFamily: 'Consolas, "Fira Code", Monaco, Menlo, "Courier New", monospace',
+                      fontFamily: '"JetBrains Mono", Consolas, "Fira Code", Monaco, Menlo, monospace',
                       fontSize: "13px",
                       lineHeight: "24px",
                       letterSpacing: "0px",
                       wordSpacing: "0px",
+                      fontVariantLigatures: "none",
                       tabSize: 4,
                       MozTabSize: 4,
                       whiteSpace: "pre",
@@ -1680,7 +1683,7 @@ function StudentJudgePage() {
                       background: "transparent",
                       color: "transparent",
                       WebkitTextFillColor: "transparent",
-                      caretColor: "#ffffff",
+                      caretColor: "#58a6ff",
                       zIndex: 2,
                     }}
                     className="selection:bg-[#264f78]/80 selection:text-transparent"

@@ -32,14 +32,14 @@ export function highlightCodeLines(
   const isCpp = normLang.includes("cpp") || normLang.includes("c++") || normLang === "c";
   const isJs = normLang.includes("javascript") || normLang === "js";
 
-  // VS Code Token Palette
+  // VS Code Token Palette (monospaced regular weight for 100% pixel-perfect cursor tracking)
   const colors = isDark
     ? {
-        comment: "color: #6a9955; font-style: italic;",
+        comment: "color: #6a9955;",
         string: "color: #ce9178;",
         number: "color: #b5cea8;",
-        control: "color: #c586c0; font-weight: 500;",
-        keyword: "color: #569cd6; font-weight: 500;",
+        control: "color: #c586c0;",
+        keyword: "color: #569cd6;",
         type: "color: #4ec9b0;",
         func: "color: #dcdcaa;",
         variable: "color: #9cdcfe;",
@@ -47,11 +47,11 @@ export function highlightCodeLines(
         punctuation: "color: #d4d4d4;",
       }
     : {
-        comment: "color: #008000; font-style: italic;",
+        comment: "color: #008000;",
         string: "color: #a31515;",
         number: "color: #098658;",
-        control: "color: #af00db; font-weight: 500;",
-        keyword: "color: #0000ff; font-weight: 500;",
+        control: "color: #af00db;",
+        keyword: "color: #0000ff;",
         type: "color: #267f99;",
         func: "color: #795e26;",
         variable: "color: #001080;",
