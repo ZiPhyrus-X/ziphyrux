@@ -10859,9 +10859,10 @@ class DatabaseStore {
       (j) => j.studentId === student.id || j.studentId === userContext.id
     );
 
+    const hasUsername = Boolean(profile.githubUsername && profile.githubUsername.trim().length > 0);
     return {
-      connected: true,
-      githubUsername: profile.githubUsername || "aarav-sharma-zx",
+      connected: hasUsername,
+      githubUsername: profile.githubUsername || "",
       targetRepo: profile.targetGitHubRepo,
       syncedCount: jobs.filter((j) => j.status === "synced").length,
       recentSyncs: jobs.slice(0, 10),

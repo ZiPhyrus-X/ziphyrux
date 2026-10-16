@@ -513,4 +513,62 @@ describe("Ziphyrus X — Complete Student Workspace Architecture & Security", ()
       expect(Array.isArray(json.data)).toBe(true);
     });
   });
+
+  // =========================================================================
+  // 10. GITHUB LIVE CONNECTION STATUS & ACTIONS
+  // =========================================================================
+  describe("10. Student GitHub Live Connection Status & Actions", () => {
+    it("returns live connected status based on student's github username", async () => {
+      const statusRes = await api("/api/v1/student/github/status", "GET");
+      expect(statusRes.status).toBe(200);
+      const json = await statusRes.json();
+      expect(json.success).toBe(true);
+      expect(json.data.connected).toBe(true);
+      expect(json.data.githubUsername).toBeTruthy();
+      expect(json.data.targetRepo).toBeDefined();
+    });
+
+    it("disconnects github account and returns connected: false with empty username", async () => {
+      const discoRes = await api("/api/v1/student/github/disconnect", "POST");
+      expect(discoRes.status).toBe(200);
+      const discoJson = await discoRes.json();
+      expect(discoJson.success).toBe(true);
+
+      // Verify status now reports connected: false and empty username
+      const statusRes = await api("/api/v1/student/github/status", "GET");
+      const json = await statusRes.json();
+      expect(json.success).toBe(true);
+      expect(json.data.connected).toBe(false);
+      expect(json.data.githubUsername).toBe("");
+    });
+
+    it("connects new github account and returns connected: true with updated username", async () => {
+      const connectRes = await api("/api/v1/student/github/connect", "POST", {
+        githubUsername: "aarav-student-octo",
+      });
+      expect(connectRes.status).toBe(200);
+      const connectJson = await connectRes.json();
+      expect(connectJson.success).toBe(true);
+      expect(connectJson.data.connected).toBe(true);
+      expect(connectJson.data.githubUsername).toBe("aarav-student-octo");
+
+      // Verify status endpoint reflects updated connection
+      const statusRes = await api("/api/v1/student/github/status", "GET");
+      const json = await statusRes.json();
+      expect(json.success).toBe(true);
+      expect(json.data.connected).toBe(true);
+      expect(json.data.githubUsername).toBe("aarav-student-octo");
+    });
+
+    it("rejects connect request if githubUsername is blank", async () => {
+      const res = await api("/api/v1/student/github/connect", "POST", {
+        githubUsername: "   ",
+      });
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.error.code).toBe("invalid_request");
+    });
+  });
 });
+

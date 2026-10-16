@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import {
   TrendingUp,
   Sparkles,
@@ -20,6 +20,8 @@ import {
   Save,
   Clock,
   Award,
+  Link2,
+  Unlink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +57,17 @@ function StudentModulePage() {
     tabSize: 4,
   });
 
+  // GitHub connection & sync state
+  const [githubStatus, setGithubStatus] = useState<{
+    connected: boolean;
+    githubUsername: string;
+    targetRepo?: string;
+    syncedCount?: number;
+    recentSyncs?: any[];
+  } | null>(null);
+  const [isConnectingGithub, setIsConnectingGithub] = useState(false);
+  const [isDisconnectingGithub, setIsDisconnectingGithub] = useState(false);
+
   // Action plan evidence modal/input
   const [evidenceText, setEvidenceText] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -78,16 +91,27 @@ function StudentModulePage() {
           res = await api.student.notifications.list();
         } else if (slug === "github") {
           res = await api.student.github.status();
+          if (mounted && res) {
+            setGithubStatus(res);
+          }
         } else if (slug === "settings") {
-          const profile = await api.student.profile();
+          const [profile, ghStatus] = await Promise.all([
+            api.student.profile(),
+            api.student.github.status().catch(() => null),
+          ]);
           res = profile;
-          if (mounted && profile) {
-            setSettingsForm({
-              bio: profile.bio || "",
-              githubUsername: profile.githubUsername || "",
-              phone: profile.phone || "",
-              tabSize: profile.editorPreferences?.tabSize || 4,
-            });
+          if (mounted) {
+            if (profile) {
+              setSettingsForm({
+                bio: profile.bio || "",
+                githubUsername: profile.githubUsername || "",
+                phone: profile.phone || "",
+                tabSize: profile.editorPreferences?.tabSize || 4,
+              });
+            }
+            if (ghStatus) {
+              setGithubStatus(ghStatus);
+            }
           }
         }
 
@@ -422,6 +446,9 @@ function StudentModulePage() {
   // 6. GITHUB REPOSITORY SYNC (PART 14)
   // =========================================================================
   if (slug === "github") {
+    const isGhConnected = Boolean(data?.connected);
+    const activeGhUser = data?.githubUsername || "";
+
     const handleRetry = async () => {
       try {
         await api.student.github.retrySync();
@@ -443,6 +470,20 @@ function StudentModulePage() {
           </p>
         </div>
 
+        {!isGhConnected && (
+          <div className="p-3.5 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>GitHub account is not connected. Connect your GitHub in Settings to enable automated repository commits.</span>
+            </div>
+            <Button asChild size="sm" variant="outline" className="h-7 text-xs border-amber-500/40 text-amber-900 dark:text-amber-100 hover:bg-amber-500/20 shrink-0">
+              <Link to="/student/m/$module" params={{ module: "settings" }}>
+                Connect in Settings
+              </Link>
+            </Button>
+          </div>
+        )}
+
         <div className="rounded-md border border-border bg-card p-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60 text-xs">
             <div>
@@ -454,6 +495,17 @@ function StudentModulePage() {
               </span>
             </div>
             <div className="flex items-center gap-2">
+              {isGhConnected ? (
+                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-medium flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Connected: @{activeGhUser}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground border-border text-[10px] font-medium flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                  Not Connected
+                </Badge>
+              )}
               <Button size="sm" variant="outline" className="h-7 text-xs border-border" onClick={handleRetry}>
                 <RotateCw className="w-3 h-3 mr-1" />
                 <span>Retry Pending</span>
@@ -490,12 +542,68 @@ function StudentModulePage() {
   // 7. STUDENT SETTINGS & SECURITY (PART 21)
   // =========================================================================
   if (slug === "settings") {
+    const isGhConnected = Boolean(
+      githubStatus ? githubStatus.connected : settingsForm.githubUsername.trim().length > 0
+    );
+    const activeGhUser = githubStatus?.githubUsername || settingsForm.githubUsername || "";
+    const targetRepo =
+      githubStatus?.targetRepo ||
+      data?.targetGitHubRepo ||
+      (activeGhUser ? `ZiphyrusX-${activeGhUser}-001` : "ZiphyrusX-Student-001");
+
+    const handleConnectGithub = async () => {
+      const username = settingsForm.githubUsername.trim();
+      if (!username) {
+        toast.error("Please enter a valid GitHub username.");
+        return;
+      }
+      try {
+        setIsConnectingGithub(true);
+        const res = await api.student.github.connect(username);
+        const freshStatus = await api.student.github.status().catch(() => null);
+        const updatedStatus = freshStatus || {
+          connected: true,
+          githubUsername: username,
+          targetRepo: res?.targetRepo || res?.data?.targetRepo || targetRepo,
+          syncedCount: res?.syncedCount ?? res?.data?.syncedCount ?? 0,
+          recentSyncs: res?.recentSyncs ?? res?.data?.recentSyncs ?? [],
+        };
+        setGithubStatus(updatedStatus);
+        setSettingsForm((prev) => ({ ...prev, githubUsername: username }));
+        toast.success(res?.message || `Connected to GitHub user '${username}'.`);
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to connect GitHub account.");
+      } finally {
+        setIsConnectingGithub(false);
+      }
+    };
+
+    const handleDisconnectGithub = async () => {
+      try {
+        setIsDisconnectingGithub(true);
+        const res = await api.student.github.disconnect();
+        setGithubStatus({
+          connected: false,
+          githubUsername: "",
+          targetRepo,
+          syncedCount: 0,
+          recentSyncs: [],
+        });
+        setSettingsForm((prev) => ({ ...prev, githubUsername: "" }));
+        toast.success(res?.message || "Disconnected GitHub account.");
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to disconnect GitHub account.");
+      } finally {
+        setIsDisconnectingGithub(false);
+      }
+    };
+
     const handleSave = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
         await api.student.updateProfile({
           bio: settingsForm.bio,
-          githubUsername: settingsForm.githubUsername,
+          githubUsername: isGhConnected ? activeGhUser : settingsForm.githubUsername.trim(),
           phone: settingsForm.phone,
           editorPreferences: { tabSize: settingsForm.tabSize, theme: "github-dark", keymap: "standard" },
         });
@@ -513,11 +621,152 @@ function StudentModulePage() {
             <span>Student Profile & Editor Preferences</span>
           </h2>
           <p className="text-xs text-muted-foreground">
-            Configure bio, GitHub username, and coding workspace settings.
+            Configure bio, GitHub repository sync, and coding workspace settings.
           </p>
         </div>
 
+        {/* GitHub Integration Card */}
+        <div className="rounded-md border border-border bg-card p-5 space-y-4 text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-md bg-muted/60 border border-border/50 text-foreground">
+                <GitBranch className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                  <span>GitHub Synchronization</span>
+                </h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Synchronize accepted Judge solutions to your dedicated portfolio repository automatically.
+                </p>
+              </div>
+            </div>
+            <div>
+              {isGhConnected ? (
+                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] font-medium flex items-center gap-1.5 px-2.5 py-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Connected
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground border-border text-[11px] font-medium flex items-center gap-1.5 px-2.5 py-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                  Not Connected
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {isGhConnected ? (
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-md bg-muted/30 border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground uppercase font-mono tracking-wider">
+                      Linked Account:
+                    </span>
+                    <a
+                      href={`https://github.com/${activeGhUser}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono font-semibold text-primary hover:underline flex items-center gap-1 text-xs truncate"
+                      title={`Open https://github.com/${activeGhUser}`}
+                    >
+                      @{activeGhUser}
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                    </a>
+                  </div>
+                  {targetRepo && (
+                    <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                      <span>Target Repository:</span>
+                      <code className="font-mono text-foreground font-semibold px-1.5 py-0.5 rounded bg-muted text-[11px]">
+                        {targetRepo}
+                      </code>
+                    </div>
+                  )}
+                  {githubStatus?.syncedCount !== undefined && (
+                    <div className="text-[11px] text-muted-foreground">
+                      <span className="font-medium text-foreground">{githubStatus.syncedCount}</span> solutions synchronized to date.
+                    </div>
+                  )}
+                </div>
+                <div className="shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isDisconnectingGithub}
+                    onClick={handleDisconnectGithub}
+                    className="h-8 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
+                  >
+                    {isDisconnectingGithub ? (
+                      <>
+                        <RotateCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                        Disconnecting...
+                      </>
+                    ) : (
+                      <>
+                        <Unlink className="w-3.5 h-3.5 mr-1.5" />
+                        Disconnect
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-muted-foreground text-[11px]">
+                Connect your personal GitHub account to activate automated commit syncing for all completed coding problems.
+              </p>
+              <div className="space-y-1.5">
+                <label className="font-semibold text-foreground">GitHub Username</label>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      value={settingsForm.githubUsername}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, githubUsername: e.target.value })}
+                      placeholder="e.g. aarav-sharma-zx"
+                      className="text-xs border-border bg-background h-8 font-mono"
+                      disabled={isConnectingGithub}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleConnectGithub();
+                        }
+                      }}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isConnectingGithub || !settingsForm.githubUsername.trim()}
+                    onClick={handleConnectGithub}
+                    className="h-8 text-xs font-medium px-4 shrink-0"
+                  >
+                    {isConnectingGithub ? (
+                      <>
+                        <RotateCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <GitBranch className="w-3.5 h-3.5 mr-1.5" />
+                        Connect
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Profile & Workspace Preferences Form */}
         <form onSubmit={handleSave} className="space-y-4 rounded-md border border-border bg-card p-5 text-xs">
+          <div className="font-semibold text-sm text-foreground pb-2 border-b border-border/60">
+            Workspace & Profile Details
+          </div>
+
           <div className="space-y-1.5">
             <label className="font-semibold text-foreground">Student Bio</label>
             <Input
@@ -525,16 +774,6 @@ function StudentModulePage() {
               onChange={(e) => setSettingsForm({ ...settingsForm, bio: e.target.value })}
               className="text-xs border-border bg-background"
               placeholder="Tell others about your technical interests..."
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="font-semibold text-foreground">GitHub Username</label>
-            <Input
-              value={settingsForm.githubUsername}
-              onChange={(e) => setSettingsForm({ ...settingsForm, githubUsername: e.target.value })}
-              className="text-xs border-border bg-background"
-              placeholder="e.g. aarav-sharma-zx"
             />
           </div>
 
