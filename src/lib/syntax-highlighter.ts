@@ -18,12 +18,12 @@ export function escapeHtml(str: string): string {
     .replace(/'/g, "&#039;");
 }
 
-export function highlightCode(
+export function highlightCodeLines(
   rawCode: string,
   language: string,
   options: HighlightOptions = {}
-): string {
-  if (!rawCode) return "";
+): string[] {
+  if (!rawCode) return [""];
 
   const isDark = options.isDark !== false; // Default dark
   const normLang = (language || "java").toLowerCase();
@@ -288,5 +288,14 @@ export function highlightCode(
     highlightedLines.push(result);
   }
 
-  return highlightedLines.join("\n");
+  return highlightedLines;
+}
+
+export function highlightCode(
+  rawCode: string,
+  language: string,
+  options: HighlightOptions = {}
+): string {
+  if (!rawCode) return "";
+  return highlightCodeLines(rawCode, language, options).join("\n");
 }

@@ -61,7 +61,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
-import { highlightCode } from "@/lib/syntax-highlighter";
+import { highlightCode, highlightCodeLines } from "@/lib/syntax-highlighter";
 
 export const Route = createFileRoute("/student/judge")({
   head: () => ({
@@ -350,8 +350,7 @@ function StudentJudgePage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const lineNumbersRef = useRef<HTMLDivElement>(null);
-  const codeOverlayRef = useRef<HTMLPreElement>(null);
+  const editorScrollerRef = useRef<HTMLDivElement>(null);
   const [terminalCopied, setTerminalCopied] = useState(false);
 
   // Stopwatch effect
@@ -496,7 +495,32 @@ function StudentJudgePage() {
     }
   };
 
-  // Track cursor position and textarea changes
+  // Track cursor position and keep active line in view
+  const updateCursorPos = (ta: HTMLTextAreaElement) => {
+    const textLines = ta.value.substring(0, ta.selectionStart).split("\n");
+    const currentLine = textLines.length;
+    const currentCol = textLines[textLines.length - 1].length + 1;
+    setCursorPos({
+      line: currentLine,
+      col: currentCol,
+    });
+
+    if (editorScrollerRef.current) {
+      const scroller = editorScrollerRef.current;
+      const lineTop = (currentLine - 1) * 24 + 10;
+      const lineBottom = lineTop + 24;
+      if (lineTop < scroller.scrollTop) {
+        scroller.scrollTop = Math.max(0, lineTop - 10);
+      } else if (lineBottom > scroller.scrollTop + scroller.clientHeight) {
+        scroller.scrollTop = lineBottom + 20 - scroller.clientHeight;
+      }
+    }
+  };
+
+  const handleCursorEvent = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    updateCursorPos(e.currentTarget);
+  };
+
   const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCode(e.target.value);
     setIsDirty(true);
@@ -504,54 +528,239 @@ function StudentJudgePage() {
     updateCursorPos(e.target);
   };
 
-  const updateCursorPos = (ta: HTMLTextAreaElement) => {
-    const textLines = ta.value.substring(0, ta.selectionStart).split("\n");
-    setCursorPos({
-      line: textLines.length,
-      col: textLines[textLines.length - 1].length + 1,
-    });
-  };
+  // Full-line count & memoized VS Code syntax-highlighted HTML lines
+  const codeLines = useMemo(() => (code || "").split("\n"), [code]);
+  const lineCount = useMemo(() => Math.max(codeLines.length, 24), [codeLines.length]);
 
-  // Memoized VS Code syntax-highlighted HTML
-  const highlightedCodeHtml = useMemo(() => {
-    return highlightCode(code, language, { isDark: true });
-  }, [code, language]);
+  const highlightedCodeLinesList = useMemo(() => {
+    const lines = highlightCodeLines(code, language, { isDark: true });
+    while (lines.length < lineCount) {
+      lines.push("");
+    }
+    return lines;
+  }, [code, language, lineCount]);
 
-  // Tab key & auto-indent support + Prettier keyboard shortcut (Alt+Shift+F)
+  // Tab, Enter auto-indent, auto-closing brackets, smart backspace & Prettier keyboard shortcut
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Prettier formatting shortcut: Alt+Shift+F or Ctrl+Shift+F
+    // 1. Prettier formatting shortcut: Alt+Shift+F or Ctrl+Shift+F or Cmd+Shift+F
     if (e.shiftKey && (e.altKey || e.ctrlKey || e.metaKey) && (e.key === "f" || e.key === "F")) {
       e.preventDefault();
       formatCode();
       return;
     }
 
-    if (e.key === "Tab") {
-      e.preventDefault();
-      const target = e.currentTarget;
-      const start = target.selectionStart;
-      const end = target.selectionEnd;
-      const spaces = "    ";
-      const newCode = code.substring(0, start) + spaces + code.substring(end);
-      setCode(newCode);
+    const target = e.currentTarget;
+    const start = target.selectionStart;
+    const end = target.selectionEnd;
+    const val = target.value;
+
+    const insertAtCursor = (text: string, cursorOffset?: number) => {
+      let inserted = false;
+      try {
+        inserted = document.execCommand("insertText", false, text);
+      } catch {
+        inserted = false;
+      }
+      if (!inserted) {
+        const newCode = val.substring(0, start) + text + val.substring(end);
+        setCode(newCode);
+        const nextPos = start + (cursorOffset !== undefined ? cursorOffset : text.length);
+        setTimeout(() => {
+          target.selectionStart = target.selectionEnd = nextPos;
+          updateCursorPos(target);
+        }, 0);
+      } else {
+        if (cursorOffset !== undefined) {
+          const nextPos = start + cursorOffset;
+          setTimeout(() => {
+            target.selectionStart = target.selectionEnd = nextPos;
+            updateCursorPos(target);
+          }, 0);
+        } else {
+          setTimeout(() => updateCursorPos(target), 0);
+        }
+      }
       setIsDirty(true);
       setDraftSaved(false);
-      setTimeout(() => {
-        target.selectionStart = target.selectionEnd = start + spaces.length;
-        updateCursorPos(target);
-      }, 0);
-    }
-  };
+    };
 
-  // Synced scroll between line numbers, syntax highlight overlay, and textarea
-  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
-    const target = e.currentTarget;
-    if (lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = target.scrollTop;
+    // 2. Tab & Shift+Tab handling
+    if (e.key === "Tab") {
+      e.preventDefault();
+
+      if (e.shiftKey) {
+        // Shift + Tab: un-indent current line or selected lines
+        const beforeSel = val.substring(0, start);
+        const lineStart = beforeSel.lastIndexOf("\n") + 1;
+        const selectedText = val.substring(lineStart, end);
+        const lines = selectedText.split("\n");
+        let charsRemovedFirstLine = 0;
+        let totalCharsRemoved = 0;
+
+        const unindentedLines = lines.map((l, idx) => {
+          let spacesToRemove = 0;
+          while (spacesToRemove < 4 && l[spacesToRemove] === " ") {
+            spacesToRemove++;
+          }
+          if (spacesToRemove === 0 && l[0] === "\t") {
+            spacesToRemove = 1;
+          }
+          if (idx === 0) charsRemovedFirstLine = spacesToRemove;
+          totalCharsRemoved += spacesToRemove;
+          return l.substring(spacesToRemove);
+        });
+
+        const replacement = unindentedLines.join("\n");
+        const newCode = val.substring(0, lineStart) + replacement + val.substring(end);
+        setCode(newCode);
+        setIsDirty(true);
+        setDraftSaved(false);
+        setTimeout(() => {
+          target.selectionStart = Math.max(lineStart, start - charsRemovedFirstLine);
+          target.selectionEnd = Math.max(lineStart, end - totalCharsRemoved);
+          updateCursorPos(target);
+        }, 0);
+        return;
+      }
+
+      if (start !== end) {
+        // Multi-line indent with Tab
+        const beforeSel = val.substring(0, start);
+        const lineStart = beforeSel.lastIndexOf("\n") + 1;
+        const selectedText = val.substring(lineStart, end);
+        const lines = selectedText.split("\n");
+        const indentedLines = lines.map((l) => "    " + l);
+        const replacement = indentedLines.join("\n");
+        const newCode = val.substring(0, lineStart) + replacement + val.substring(end);
+        setCode(newCode);
+        setIsDirty(true);
+        setDraftSaved(false);
+        setTimeout(() => {
+          target.selectionStart = start + 4;
+          target.selectionEnd = end + 4 * lines.length;
+          updateCursorPos(target);
+        }, 0);
+        return;
+      }
+
+      // Single cursor Tab: insert 4 spaces
+      insertAtCursor("    ", 4);
+      return;
     }
-    if (codeOverlayRef.current) {
-      codeOverlayRef.current.scrollTop = target.scrollTop;
-      codeOverlayRef.current.scrollLeft = target.scrollLeft;
+
+    // 3. Enter (Smart Auto-Indentation & Brace Expansion)
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const beforeCursor = val.substring(0, start);
+      const afterCursor = val.substring(end);
+      const lastNewlineIdx = beforeCursor.lastIndexOf("\n");
+      const currentLine = lastNewlineIdx === -1 ? beforeCursor : beforeCursor.substring(lastNewlineIdx + 1);
+
+      const indentMatch = currentLine.match(/^([ \t]*)/);
+      const currentIndent = indentMatch ? indentMatch[1] : "";
+
+      const charBefore = beforeCursor.trimEnd().slice(-1);
+      const charAfter = afterCursor.trimStart().slice(0, 1);
+
+      const isBetweenBrackets =
+        (charBefore === "{" && charAfter === "}") ||
+        (charBefore === "(" && charAfter === ")") ||
+        (charBefore === "[" && charAfter === "]");
+
+      const opensBlock =
+        charBefore === "{" ||
+        charBefore === ":" ||
+        charBefore === "(" ||
+        charBefore === "[";
+
+      if (isBetweenBrackets) {
+        const textToInsert = "\n" + currentIndent + "    \n" + currentIndent;
+        insertAtCursor(textToInsert, 1 + currentIndent.length + 4);
+      } else if (opensBlock) {
+        insertAtCursor("\n" + currentIndent + "    ");
+      } else {
+        insertAtCursor("\n" + currentIndent);
+      }
+      return;
+    }
+
+    // 4. Closing character skip-over
+    const CLOSING_CHARS = new Set([")", "]", "}", '"', "'", "`"]);
+    if (CLOSING_CHARS.has(e.key) && start === end && val[start] === e.key) {
+      e.preventDefault();
+      target.selectionStart = target.selectionEnd = start + 1;
+      updateCursorPos(target);
+      return;
+    }
+
+    // 5. Auto-closing pairs
+    const PAIRS: Record<string, string> = {
+      "(": ")",
+      "[": "]",
+      "{": "}",
+      '"': '"',
+      "'": "'",
+      "`": "`",
+    };
+
+    if (PAIRS[e.key]) {
+      const closeChar = PAIRS[e.key];
+
+      if (start !== end) {
+        e.preventDefault();
+        const selected = val.substring(start, end);
+        insertAtCursor(e.key + selected + closeChar, 1 + selected.length);
+        return;
+      }
+
+      if ((e.key === "'" || e.key === '"') && start > 0 && /[a-zA-Z0-9_]/.test(val[start - 1])) {
+        return;
+      }
+
+      e.preventDefault();
+      insertAtCursor(e.key + closeChar, 1);
+      return;
+    }
+
+    // 6. Smart Backspace
+    if (e.key === "Backspace" && start === end && start > 0) {
+      const charBefore = val[start - 1];
+      const charAfter = val[start];
+
+      if (
+        (charBefore === "(" && charAfter === ")") ||
+        (charBefore === "[" && charAfter === "]") ||
+        (charBefore === "{" && charAfter === "}") ||
+        (charBefore === '"' && charAfter === '"') ||
+        (charBefore === "'" && charAfter === "'") ||
+        (charBefore === "`" && charAfter === "`")
+      ) {
+        e.preventDefault();
+        const newCode = val.substring(0, start - 1) + val.substring(start + 1);
+        setCode(newCode);
+        setIsDirty(true);
+        setDraftSaved(false);
+        setTimeout(() => {
+          target.selectionStart = target.selectionEnd = start - 1;
+          updateCursorPos(target);
+        }, 0);
+        return;
+      }
+
+      const lineStart = val.lastIndexOf("\n", start - 1) + 1;
+      const textBeforeOnLine = val.substring(lineStart, start);
+      if (textBeforeOnLine.length >= 4 && /^ +$/.test(textBeforeOnLine) && textBeforeOnLine.length % 4 === 0) {
+        e.preventDefault();
+        const newCode = val.substring(0, start - 4) + val.substring(start);
+        setCode(newCode);
+        setIsDirty(true);
+        setDraftSaved(false);
+        setTimeout(() => {
+          target.selectionStart = target.selectionEnd = start - 4;
+          updateCursorPos(target);
+        }, 0);
+        return;
+      }
     }
   };
 
@@ -652,12 +861,6 @@ function StudentJudgePage() {
     setSubmissionResult(null);
     toast.info("Terminal output cleared.");
   };
-
-  // Line count for code gutter
-  const lineCount = useMemo(() => {
-    const lines = (code || "").split("\n").length;
-    return Math.max(lines, 24);
-  }, [code]);
 
   // Is problem currently solved?
   const isSolved = useMemo(() => {
@@ -1346,69 +1549,143 @@ function StudentJudgePage() {
             </div>
 
             {/* Editor Body with Monospace Line Numbers & Dual-Layer VS Code Syntax Highlighter */}
-            <div className="relative flex-1 min-h-0 bg-[#1e1e1e] text-[#d4d4d4] flex overflow-hidden font-mono text-xs select-text">
-              {/* Line Numbers Gutter */}
-              <div
-                ref={lineNumbersRef}
-                className="w-12 py-2.5 bg-[#1e1e1e] border-r border-[#2d2d2d] text-right pr-2.5 font-mono text-xs text-[#858585] select-none overflow-hidden leading-6 shrink-0"
-              >
-                {Array.from({ length: lineCount }).map((_, idx) => {
-                  const lineNum = idx + 1;
-                  const isCurrentLine = cursorPos.line === lineNum;
-                  return (
-                    <div
-                      key={lineNum}
-                      className={cn(
-                        "h-6 transition-colors",
-                        isCurrentLine ? "text-[#c6c6c6] font-semibold" : ""
-                      )}
-                    >
-                      {lineNum}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Code Area: Syntax Highlight Layer Behind + Transparent Interactive Textarea In Front */}
-              <div className="relative flex-1 h-full min-w-0 overflow-hidden">
-                {/* Active Line Background Highlight Strip */}
+            <div
+              ref={editorScrollerRef}
+              className="relative flex-1 min-h-0 bg-[#1e1e1e] text-[#d4d4d4] overflow-auto select-text font-mono text-xs"
+              style={{ scrollbarGutter: "stable" }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  textareaRef.current?.focus();
+                }
+              }}
+            >
+              <div className="flex min-w-full min-h-full">
+                {/* Sticky Line Numbers Gutter */}
                 <div
-                  className="absolute left-0 right-0 pointer-events-none bg-white/[0.04] border-y border-white/[0.06] z-0 transition-all duration-75"
-                  style={{
-                    top: `${Math.max(0, (cursorPos.line - 1) * 24 + 10)}px`,
-                    height: "24px",
-                  }}
-                />
-
-                {/* Layer 1: Syntax Highlighted Layer (Non-interactive, visual only) */}
-                <pre
-                  ref={codeOverlayRef}
-                  aria-hidden="true"
-                  className="absolute inset-0 m-0 p-2.5 font-mono text-xs leading-6 overflow-hidden pointer-events-none whitespace-pre tab-4 select-none z-1"
+                  className="sticky left-0 top-0 z-20 shrink-0 select-none bg-[#1e1e1e] border-r border-[#2d2d2d] text-right text-[#858585] py-2.5 pr-3 pl-2"
+                  style={{ width: "48px" }}
                 >
-                  <code
-                    dangerouslySetInnerHTML={{
-                      __html: highlightedCodeHtml + "\n",
+                  {Array.from({ length: lineCount }).map((_, idx) => {
+                    const lineNum = idx + 1;
+                    const isCurrentLine = cursorPos.line === lineNum;
+                    return (
+                      <div
+                        key={lineNum}
+                        style={{ height: "24px", lineHeight: "24px" }}
+                        className={cn(
+                          "transition-colors",
+                          isCurrentLine ? "text-[#c6c6c6] font-semibold" : ""
+                        )}
+                      >
+                        {lineNum}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Code Body Grid: Pre layer and Textarea in EXACT same cell */}
+                <div
+                  className="relative flex-1 min-w-0"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr",
+                    gridTemplateRows: "1fr",
+                  }}
+                >
+                  {/* Active Line Background Highlight Strip */}
+                  <div
+                    className="absolute left-0 right-0 pointer-events-none bg-white/[0.04] border-y border-white/[0.07] z-0 transition-all duration-75"
+                    style={{
+                      top: `${Math.max(0, (cursorPos.line - 1) * 24 + 10)}px`,
+                      height: "24px",
                     }}
                   />
-                </pre>
 
-                {/* Layer 2: Textarea (Front, transparent text, visible cursor & selection) */}
-                <textarea
-                  ref={textareaRef}
-                  value={code}
-                  onChange={handleCodeChange}
-                  onKeyDown={handleKeyDown}
-                  onKeyUp={(e) => updateCursorPos(e.currentTarget)}
-                  onClick={(e) => updateCursorPos(e.currentTarget)}
-                  onScroll={handleScroll}
-                  spellCheck={false}
-                  autoCapitalize="off"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  className="absolute inset-0 m-0 w-full h-full p-2.5 font-mono text-xs leading-6 bg-transparent text-transparent caret-white selection:bg-[#264f78]/70 resize-none focus:outline-none overflow-auto whitespace-pre tab-4 z-10"
-                  placeholder="// Let's code flow in your veins..."
-                />
+                  {/* Layer 1: Syntax Highlighted Layer (Non-interactive, visual only) */}
+                  <pre
+                    aria-hidden="true"
+                    style={{
+                      gridArea: "1 / 1 / 2 / 2",
+                      margin: 0,
+                      padding: "10px 14px",
+                      boxSizing: "border-box",
+                      fontFamily: 'Consolas, "Fira Code", Monaco, Menlo, "Courier New", monospace',
+                      fontSize: "13px",
+                      lineHeight: "24px",
+                      letterSpacing: "0px",
+                      wordSpacing: "0px",
+                      tabSize: 4,
+                      MozTabSize: 4,
+                      whiteSpace: "pre",
+                      wordBreak: "keep-all",
+                      overflowWrap: "normal",
+                      pointerEvents: "none",
+                      userSelect: "none",
+                      zIndex: 1,
+                      background: "transparent",
+                      border: "none",
+                      outline: "none",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <code>
+                      {highlightedCodeLinesList.map((lineHtml, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            height: "24px",
+                            lineHeight: "24px",
+                            minHeight: "24px",
+                            whiteSpace: "pre",
+                          }}
+                          dangerouslySetInnerHTML={{ __html: lineHtml || "&nbsp;" }}
+                        />
+                      ))}
+                    </code>
+                  </pre>
+
+                  {/* Layer 2: Textarea (Front, transparent text, caret & selection visible) */}
+                  <textarea
+                    ref={textareaRef}
+                    value={code}
+                    onChange={handleCodeChange}
+                    onKeyDown={handleKeyDown}
+                    onKeyUp={handleCursorEvent}
+                    onClick={handleCursorEvent}
+                    onSelect={handleCursorEvent}
+                    spellCheck={false}
+                    autoCapitalize="off"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    style={{
+                      gridArea: "1 / 1 / 2 / 2",
+                      margin: 0,
+                      padding: "10px 14px",
+                      boxSizing: "border-box",
+                      fontFamily: 'Consolas, "Fira Code", Monaco, Menlo, "Courier New", monospace',
+                      fontSize: "13px",
+                      lineHeight: "24px",
+                      letterSpacing: "0px",
+                      wordSpacing: "0px",
+                      tabSize: 4,
+                      MozTabSize: 4,
+                      whiteSpace: "pre",
+                      wordBreak: "keep-all",
+                      overflowWrap: "normal",
+                      border: "none",
+                      outline: "none",
+                      resize: "none",
+                      overflow: "hidden",
+                      background: "transparent",
+                      color: "transparent",
+                      WebkitTextFillColor: "transparent",
+                      caretColor: "#ffffff",
+                      zIndex: 2,
+                    }}
+                    className="selection:bg-[#264f78]/80 selection:text-transparent"
+                    placeholder="// Let's code flow in your veins..."
+                  />
+                </div>
               </div>
             </div>
 
