@@ -501,7 +501,7 @@ function StudentJudgePage() {
     }
   };
 
-  // Track cursor position and keep active line in view
+  // Track cursor position
   const updateCursorPos = (ta: HTMLTextAreaElement) => {
     const textLines = ta.value.substring(0, ta.selectionStart).split("\n");
     const currentLine = textLines.length;
@@ -510,17 +510,6 @@ function StudentJudgePage() {
       line: currentLine,
       col: currentCol,
     });
-
-    if (editorScrollerRef.current) {
-      const scroller = editorScrollerRef.current;
-      const lineTop = (currentLine - 1) * 24 + 10;
-      const lineBottom = lineTop + 24;
-      if (lineTop < scroller.scrollTop) {
-        scroller.scrollTop = Math.max(0, lineTop - 10);
-      } else if (lineBottom > scroller.scrollTop + scroller.clientHeight) {
-        scroller.scrollTop = lineBottom + 20 - scroller.clientHeight;
-      }
-    }
   };
 
   // Cursor preservation across programmatic state updates
@@ -1563,17 +1552,16 @@ function StudentJudgePage() {
               ref={editorScrollerRef}
               className="relative flex-1 min-h-0 bg-[#1e1e1e] text-[#d4d4d4] overflow-auto select-text font-mono text-xs"
               style={{ scrollbarGutter: "stable" }}
-              onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  textareaRef.current?.focus();
-                }
+              onClick={() => {
+                textareaRef.current?.focus();
               }}
             >
               <div className="flex min-w-full w-max min-h-full">
                 {/* Sticky Line Numbers Gutter */}
                 <div
-                  className="sticky left-0 top-0 z-20 shrink-0 select-none bg-[#1e1e1e] border-r border-[#2d2d2d] text-right text-[#858585] py-2.5 pr-3 pl-2"
+                  className="sticky left-0 top-0 z-20 shrink-0 select-none bg-[#1e1e1e] border-r border-[#2d2d2d] text-right text-[#858585] py-2.5 pr-3 pl-2 cursor-text"
                   style={{ width: "48px" }}
+                  onClick={() => textareaRef.current?.focus()}
                 >
                   {Array.from({ length: lineCount }).map((_, idx) => {
                     const lineNum = idx + 1;
@@ -1595,16 +1583,17 @@ function StudentJudgePage() {
 
                 {/* Code Body Grid: Pre layer and Textarea in EXACT same cell */}
                 <div
-                  className="relative flex-1 min-w-[500px] min-h-full"
+                  className="relative flex-1 min-w-[500px] min-h-full cursor-text"
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1fr",
                     gridTemplateRows: "1fr",
                   }}
+                  onClick={() => textareaRef.current?.focus()}
                 >
                   {/* Active Line Background Highlight Strip */}
                   <div
-                    className="absolute left-0 right-0 pointer-events-none bg-white/[0.04] border-y border-white/[0.07] z-0 transition-all duration-75"
+                    className="absolute left-0 right-0 pointer-events-none bg-white/[0.04] border-y border-white/[0.07] z-0"
                     style={{
                       top: `${Math.max(0, (cursorPos.line - 1) * 24 + 10)}px`,
                       height: "24px",
@@ -1651,11 +1640,6 @@ function StudentJudgePage() {
                     onKeyDown={handleKeyDown}
                     onKeyUp={handleCursorEvent}
                     onClick={handleCursorEvent}
-                    onSelect={handleCursorEvent}
-                    onScroll={(e) => {
-                      if (e.currentTarget.scrollTop !== 0) e.currentTarget.scrollTop = 0;
-                      if (e.currentTarget.scrollLeft !== 0) e.currentTarget.scrollLeft = 0;
-                    }}
                     spellCheck={false}
                     autoCapitalize="off"
                     autoComplete="off"
