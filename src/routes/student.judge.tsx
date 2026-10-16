@@ -39,6 +39,7 @@ import {
   ExternalLink,
   Flame,
   Copy,
+  ListFilter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,7 +103,7 @@ function formatLinePrettier(line: string): string {
       continue;
     }
     if (ch === "{") {
-      if (out.length > 0 && !/\s/.test(out[out.length - 1])) {
+      if (out.length > 0 && !/\s/.test(out[out.length - 1] ?? "")) {
         out += " ";
       }
       out += "{";
@@ -499,7 +500,7 @@ function StudentJudgePage() {
   const updateCursorPos = (ta: HTMLTextAreaElement) => {
     const textLines = ta.value.substring(0, ta.selectionStart).split("\n");
     const currentLine = textLines.length;
-    const currentCol = textLines[textLines.length - 1].length + 1;
+    const currentCol = (textLines[textLines.length - 1] ?? "").length + 1;
     setCursorPos({
       line: currentLine,
       col: currentCol,
@@ -657,7 +658,7 @@ function StudentJudgePage() {
       const currentLine = lastNewlineIdx === -1 ? beforeCursor : beforeCursor.substring(lastNewlineIdx + 1);
 
       const indentMatch = currentLine.match(/^([ \t]*)/);
-      const currentIndent = indentMatch ? indentMatch[1] : "";
+      const currentIndent = indentMatch ? (indentMatch[1] ?? "") : "";
 
       const charBefore = beforeCursor.trimEnd().slice(-1);
       const charAfter = afterCursor.trimStart().slice(0, 1);
@@ -713,7 +714,7 @@ function StudentJudgePage() {
         return;
       }
 
-      if ((e.key === "'" || e.key === '"') && start > 0 && /[a-zA-Z0-9_]/.test(val[start - 1])) {
+      if ((e.key === "'" || e.key === '"') && start > 0 && /[a-zA-Z0-9_]/.test(val[start - 1] ?? "")) {
         return;
       }
 
