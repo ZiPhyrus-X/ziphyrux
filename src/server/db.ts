@@ -9,6 +9,7 @@ import { addDays, subDays, subHours, subMinutes } from "date-fns";
 import type { Role, AuthenticatedUser } from "./types";
 import { METRIC_REGISTRY, type MetricDefinition } from "./intelligence/metric-registry";
 import { intelligenceEngine, type ScopeIntelligenceResult, type OverrideProvenanceRecord } from "./intelligence/engine";
+import { analyzeSourceCode } from "./code-analyzer";
 
 export type CollegeLifecycleStatus = "active" | "hold" | "deactive";
 
@@ -140,6 +141,8 @@ export interface JudgeSubmissionRecord {
   testCasesPassed: number;
   totalTestCases: number;
   submittedAt: string;
+  compileError?: string;
+  terminalOutput?: string;
   githubSynced?: boolean;
   githubCommitSha?: string;
   githubRepoName?: string;
@@ -10238,36 +10241,29 @@ class DatabaseStore {
     sourceCode: string
   ): {
     compileError?: string;
+    terminalOutput?: string;
     isCorrect: boolean;
     passedTestIndices: number[];
   } {
     const trimmed = (sourceCode || "").trim();
     if (!trimmed) {
-      return { compileError: "Empty source code", isCorrect: false, passedTestIndices: [] };
+      return {
+        compileError: "Empty source code",
+        terminalOutput: "$ run\nError: Source code cannot be empty.\nProcess exited with code 1\n",
+        isCorrect: false,
+        passedTestIndices: [],
+      };
     }
 
-    // 1. Bracket and parenthesis syntax check
-    let p = 0, b = 0, br = 0;
-    let inStr = false, sChar = "";
-    for (let i = 0; i < trimmed.length; i++) {
-      const c = trimmed[i];
-      if (inStr) {
-        if (c === sChar && trimmed[i - 1] !== "\\") inStr = false;
-        continue;
-      }
-      if (c === '"' || c === "'") { inStr = true; sChar = c; continue; }
-      if (c === "(") p++; else if (c === ")") p--;
-      if (c === "{") b++; else if (c === "}") b--;
-      if (c === "[") br++; else if (c === "]") br--;
-      if (p < 0 || b < 0 || br < 0) {
-        return { compileError: "SyntaxError: Unexpected closing bracket or token near line 1", isCorrect: false, passedTestIndices: [] };
-      }
-    }
-    if (p !== 0 || b !== 0 || br !== 0) {
-      return { compileError: "SyntaxError: Unmatched opening bracket or parenthesis.", isCorrect: false, passedTestIndices: [] };
-    }
-    if (trimmed.toLowerCase().includes("syntax error") || trimmed.toLowerCase().includes("compile error")) {
-      return { compileError: "Compile Error: Invalid token sequence.", isCorrect: false, passedTestIndices: [] };
+    // 1. Static Analysis & Scope/Symbol Verification (Catches undeclared variables & syntax errors)
+    const analysis = analyzeSourceCode(language, sourceCode);
+    if (analysis.hasError) {
+      return {
+        compileError: analysis.errorMessage || "Compilation / Runtime Error",
+        terminalOutput: analysis.terminalOutput,
+        isCorrect: false,
+        passedTestIndices: [],
+      };
     }
 
     // 2. Check if code is just empty starter template without implementation
@@ -10428,9 +10424,12 @@ class DatabaseStore {
         success: false,
         status: "compile_error",
         compileError: evalResult.compileError,
+        terminalOutput: evalResult.terminalOutput || evalResult.compileError,
         results: [],
         executionTimeMs: 0,
         memoryUsedMb: 0,
+        totalSampleCases: sampleCases.length,
+        passedSampleCases: 0,
       };
     }
 
@@ -10452,10 +10451,14 @@ class DatabaseStore {
     });
 
     const allPassed = results.length > 0 && results.every((r) => r.passed);
+    const terminalOutput = allPassed
+      ? `$ run solution\nExecuting ${sampleCases.length} sample test cases...\n${results.map((r) => `✓ Case ${r.orderIndex}: Input ${r.input} -> Output ${r.expectedOutput} (${r.executionTimeMs}ms)`).join("\n")}\n\nAll ${sampleCases.length} sample test cases passed.\nProcess exited with code 0\n`
+      : `$ run solution\nExecuting ${sampleCases.length} sample test cases...\n${results.map((r) => r.passed ? `✓ Case ${r.orderIndex}: Passed (${r.executionTimeMs}ms)` : `✗ Case ${r.orderIndex}: Wrong Answer (Expected ${r.expectedOutput}, got ${r.actualOutput})`).join("\n")}\n\nSample test cases failed.\nProcess exited with code 1\n`;
 
     return {
       success: true,
       status: allPassed ? "sample_passed" : "sample_failed",
+      terminalOutput,
       totalSampleCases: sampleCases.length,
       passedSampleCases: results.filter((r) => r.passed).length,
       executionTimeMs: Math.max(...results.map((r) => r.executionTimeMs), 25),
@@ -10513,6 +10516,8 @@ class DatabaseStore {
         language,
         sourceCode,
         status: "compile_error",
+        compileError: evalResult.compileError,
+        terminalOutput: evalResult.terminalOutput || evalResult.compileError,
         score: 0,
         executionTimeMs: 0,
         memoryUsedMb: 0,
@@ -10531,6 +10536,10 @@ class DatabaseStore {
     const executionTimeMs = Math.floor(Math.random() * 30) + 20;
     const memoryUsedMb = Number((Math.random() * 3 + 14).toFixed(1));
 
+    const terminalOutput = isAccepted
+      ? `$ submit solution\nEvaluating submission against all ${totalTestCases} test cases...\n${problem.testCases.map((_, i) => `✓ Test Case ${i + 1}/${totalTestCases}: Accepted`).join("\n")}\n\nVerdict: ACCEPTED (Score: 100/100)\nRuntime: ${executionTimeMs}ms | Memory: ${memoryUsedMb}MB\nProcess exited with code 0\n`
+      : `$ submit solution\nEvaluating submission against all ${totalTestCases} test cases...\n${problem.testCases.map((_, i) => i < testCasesPassed ? `✓ Test Case ${i + 1}/${totalTestCases}: Passed` : `✗ Test Case ${i + 1}/${totalTestCases}: Wrong Answer`).join("\n")}\n\nVerdict: WRONG ANSWER (${testCasesPassed}/${totalTestCases} passed)\nProcess exited with code 1\n`;
+
     const submission: JudgeSubmissionRecord = {
       id: `sub-${Date.now()}`,
       problemId: problem.id,
@@ -10547,6 +10556,7 @@ class DatabaseStore {
       memoryUsedMb,
       testCasesPassed,
       totalTestCases,
+      terminalOutput,
       submittedAt: new Date().toISOString(),
     };
 

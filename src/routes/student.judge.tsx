@@ -35,10 +35,10 @@ import {
   Shuffle,
   Timer,
   Lock,
-  ListFilter,
   Sparkles,
   ExternalLink,
   Flame,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +61,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
+import { highlightCode } from "@/lib/syntax-highlighter";
 
 export const Route = createFileRoute("/student/judge")({
   head: () => ({
@@ -71,6 +72,51 @@ export const Route = createFileRoute("/student/judge")({
   }),
   component: StudentJudgePage,
 });
+
+function formatLinePrettier(line: string): string {
+  // Ensure space after commas (except inside strings)
+  let out = "";
+  let inStr = false;
+  let strQuote = "";
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inStr) {
+      out += ch;
+      if (ch === strQuote && line[i - 1] !== "\\") inStr = false;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      inStr = true;
+      strQuote = ch;
+      out += ch;
+      continue;
+    }
+    if (ch === ",") {
+      out += ", ";
+      while (i + 1 < line.length && line[i + 1] === " ") i++;
+      continue;
+    }
+    if (ch === ";") {
+      out = out.trimEnd() + ";";
+      continue;
+    }
+    if (ch === "{") {
+      if (out.length > 0 && !/\s/.test(out[out.length - 1])) {
+        out += " ";
+      }
+      out += "{";
+      continue;
+    }
+    out += ch;
+  }
+
+  // Normalize single equals '=' spacing if not part of ==, !=, <=, >=, =>, +=, -=
+  out = out.replace(/([^=!<>&|+*\/%\-\s])=([^=<>])/g, "$1 = $2");
+  out = out.replace(/([^=!<>&|+*\/%\-])\s*=\s*([^=<>])/g, "$1 = $2");
+
+  return out;
+}
 
 export function formatSourceCode(rawCode: string, lang: string): string {
   if (!rawCode || !rawCode.trim()) return rawCode;
@@ -97,13 +143,15 @@ export function formatSourceCode(rawCode: string, lang: string): string {
     let prevLevel = 0;
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+      let line = lines[i].trim();
       if (!line) {
         if (formatted.length > 0 && formatted[formatted.length - 1] !== "") {
           formatted.push("");
         }
         continue;
       }
+
+      line = formatLinePrettier(line);
 
       const match = lines[i].match(/^([ \t]+)/);
       const spaces = match ? match[1].replace(/\t/g, "    ").length : 0;
@@ -125,13 +173,15 @@ export function formatSourceCode(rawCode: string, lang: string): string {
   const formatted: string[] = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    let line = lines[i].trim();
     if (!line) {
       if (formatted.length > 0 && formatted[formatted.length - 1] !== "") {
         formatted.push("");
       }
       continue;
     }
+
+    line = formatLinePrettier(line);
 
     const leadingCloses = (line.match(/^([\}\]\)]+)/) || [""])[0].length;
     if (leadingCloses > 0) {
@@ -301,6 +351,8 @@ function StudentJudgePage() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const codeOverlayRef = useRef<HTMLPreElement>(null);
+  const [terminalCopied, setTerminalCopied] = useState(false);
 
   // Stopwatch effect
   useEffect(() => {
@@ -460,8 +512,20 @@ function StudentJudgePage() {
     });
   };
 
-  // Tab key & auto-indent support
+  // Memoized VS Code syntax-highlighted HTML
+  const highlightedCodeHtml = useMemo(() => {
+    return highlightCode(code, language, { isDark: true });
+  }, [code, language]);
+
+  // Tab key & auto-indent support + Prettier keyboard shortcut (Alt+Shift+F)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Prettier formatting shortcut: Alt+Shift+F or Ctrl+Shift+F
+    if (e.shiftKey && (e.altKey || e.ctrlKey || e.metaKey) && (e.key === "f" || e.key === "F")) {
+      e.preventDefault();
+      formatCode();
+      return;
+    }
+
     if (e.key === "Tab") {
       e.preventDefault();
       const target = e.currentTarget;
@@ -479,10 +543,15 @@ function StudentJudgePage() {
     }
   };
 
-  // Synced scroll between line numbers and code
+  // Synced scroll between line numbers, syntax highlight overlay, and textarea
   const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    const target = e.currentTarget;
     if (lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = e.currentTarget.scrollTop;
+      lineNumbersRef.current.scrollTop = target.scrollTop;
+    }
+    if (codeOverlayRef.current) {
+      codeOverlayRef.current.scrollTop = target.scrollTop;
+      codeOverlayRef.current.scrollLeft = target.scrollLeft;
     }
   };
 
@@ -494,7 +563,7 @@ function StudentJudgePage() {
     toast.info("Reset code to default solution template.");
   };
 
-  // Format Code
+  // Format Code with Prettier
   const formatCode = () => {
     try {
       const formatted = formatSourceCode(code, language);
@@ -502,9 +571,9 @@ function StudentJudgePage() {
         setCode(formatted);
         setIsDirty(true);
         setDraftSaved(false);
-        toast.success("Code formatted successfully.");
+        toast.success("Code formatted with Prettier ✨");
       } else {
-        toast.info("Code is already well-formatted.");
+        toast.info("Code is already well-formatted with Prettier.");
       }
     } catch (err) {
       console.error("Format error:", err);
@@ -560,6 +629,28 @@ function StudentJudgePage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Terminal Copy & Clear Handlers
+  const handleCopyTerminalOutput = () => {
+    const textToCopy =
+      sampleResult?.terminalOutput ||
+      submissionResult?.terminalOutput ||
+      sampleResult?.compileError ||
+      submissionResult?.compileError ||
+      "";
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy);
+      setTerminalCopied(true);
+      toast.success("Terminal output copied to clipboard.");
+      setTimeout(() => setTerminalCopied(false), 2000);
+    }
+  };
+
+  const handleClearTerminal = () => {
+    setSampleResult(null);
+    setSubmissionResult(null);
+    toast.info("Terminal output cleared.");
   };
 
   // Line count for code gutter
@@ -1218,16 +1309,18 @@ function StudentJudgePage() {
                 </div>
               </div>
 
-              {/* Action Icons: Format, Settings, Reset */}
-              <div className="flex items-center gap-1">
+              {/* Action Icons: Prettier, Reset, Save Draft */}
+              <div className="flex items-center gap-1.5">
                 <Button
-                  size="icon"
-                  variant="ghost"
+                  size="sm"
+                  variant="outline"
                   onClick={formatCode}
-                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                  title="Format Code"
+                  className="h-6 px-2 text-[11px] gap-1.5 border-border/80 bg-background/80 hover:bg-muted font-mono text-foreground shadow-xs"
+                  title="Format Code with Prettier (Alt + Shift + F)"
                 >
-                  <Braces className="w-3.5 h-3.5" />
+                  <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500/20" />
+                  <span className="font-semibold">Prettier</span>
+                  <span className="text-[10px] text-muted-foreground/70 hidden sm:inline">Alt+Shift+F</span>
                 </Button>
 
                 <Button
@@ -1252,40 +1345,78 @@ function StudentJudgePage() {
               </div>
             </div>
 
-            {/* Editor Body with Monospace Line Numbers & Textarea */}
-            <div className="relative flex-1 min-h-0 bg-background flex overflow-hidden">
+            {/* Editor Body with Monospace Line Numbers & Dual-Layer VS Code Syntax Highlighter */}
+            <div className="relative flex-1 min-h-0 bg-[#1e1e1e] text-[#d4d4d4] flex overflow-hidden font-mono text-xs select-text">
               {/* Line Numbers Gutter */}
               <div
                 ref={lineNumbersRef}
-                className="w-11 py-2.5 bg-muted/15 border-r border-border/30 text-right pr-2.5 font-mono text-xs text-muted-foreground/40 select-none overflow-hidden leading-6"
+                className="w-12 py-2.5 bg-[#1e1e1e] border-r border-[#2d2d2d] text-right pr-2.5 font-mono text-xs text-[#858585] select-none overflow-hidden leading-6 shrink-0"
               >
-                {Array.from({ length: lineCount }).map((_, idx) => (
-                  <div key={idx + 1} className="h-6">
-                    {idx + 1}
-                  </div>
-                ))}
+                {Array.from({ length: lineCount }).map((_, idx) => {
+                  const lineNum = idx + 1;
+                  const isCurrentLine = cursorPos.line === lineNum;
+                  return (
+                    <div
+                      key={lineNum}
+                      className={cn(
+                        "h-6 transition-colors",
+                        isCurrentLine ? "text-[#c6c6c6] font-semibold" : ""
+                      )}
+                    >
+                      {lineNum}
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Monospaced Code Textarea */}
-              <textarea
-                ref={textareaRef}
-                value={code}
-                onChange={handleCodeChange}
-                onKeyDown={handleKeyDown}
-                onKeyUp={(e) => updateCursorPos(e.currentTarget)}
-                onClick={(e) => updateCursorPos(e.currentTarget)}
-                onScroll={handleScroll}
-                spellCheck={false}
-                className="flex-1 h-full p-2.5 font-mono text-xs leading-6 bg-transparent text-foreground resize-none focus:outline-none overflow-y-auto whitespace-pre tab-4"
-                placeholder="// Let's code flow in your veins..."
-              />
+              {/* Code Area: Syntax Highlight Layer Behind + Transparent Interactive Textarea In Front */}
+              <div className="relative flex-1 h-full min-w-0 overflow-hidden">
+                {/* Active Line Background Highlight Strip */}
+                <div
+                  className="absolute left-0 right-0 pointer-events-none bg-white/[0.04] border-y border-white/[0.06] z-0 transition-all duration-75"
+                  style={{
+                    top: `${Math.max(0, (cursorPos.line - 1) * 24 + 10)}px`,
+                    height: "24px",
+                  }}
+                />
+
+                {/* Layer 1: Syntax Highlighted Layer (Non-interactive, visual only) */}
+                <pre
+                  ref={codeOverlayRef}
+                  aria-hidden="true"
+                  className="absolute inset-0 m-0 p-2.5 font-mono text-xs leading-6 overflow-hidden pointer-events-none whitespace-pre tab-4 select-none z-1"
+                >
+                  <code
+                    dangerouslySetInnerHTML={{
+                      __html: highlightedCodeHtml + "\n",
+                    }}
+                  />
+                </pre>
+
+                {/* Layer 2: Textarea (Front, transparent text, visible cursor & selection) */}
+                <textarea
+                  ref={textareaRef}
+                  value={code}
+                  onChange={handleCodeChange}
+                  onKeyDown={handleKeyDown}
+                  onKeyUp={(e) => updateCursorPos(e.currentTarget)}
+                  onClick={(e) => updateCursorPos(e.currentTarget)}
+                  onScroll={handleScroll}
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  className="absolute inset-0 m-0 w-full h-full p-2.5 font-mono text-xs leading-6 bg-transparent text-transparent caret-white selection:bg-[#264f78]/70 resize-none focus:outline-none overflow-auto whitespace-pre tab-4 z-10"
+                  placeholder="// Let's code flow in your veins..."
+                />
+              </div>
             </div>
 
-            {/* Editor Footer Status Bar */}
-            <div className="shrink-0 border-t border-border/50 bg-muted/20 px-3 py-1 flex items-center justify-between text-[11px] font-mono text-muted-foreground">
-              <div className="flex items-center gap-1.5">
+            {/* Editor Footer Status Bar (VS Code Look) */}
+            <div className="shrink-0 border-t border-border/50 bg-[#181818] px-3 py-1 flex items-center justify-between text-[11px] font-mono text-muted-foreground select-none">
+              <div className="flex items-center gap-2">
                 {draftSaved ? (
-                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                  <span className="flex items-center gap-1 text-emerald-500">
                     <Check className="w-3 h-3" />
                     <span>Saved</span>
                   </span>
@@ -1295,6 +1426,13 @@ function StudentJudgePage() {
               </div>
 
               <div className="flex items-center gap-3">
+                <span className="hidden sm:inline">Spaces: 4</span>
+                <span className="hidden sm:inline">UTF-8</span>
+                <span className="capitalize">{language}</span>
+                <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                  <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                  <span>Prettier</span>
+                </span>
                 <span>
                   Ln {cursorPos.line}, Col {cursorPos.col}
                 </span>
@@ -1414,55 +1552,115 @@ function StudentJudgePage() {
                         </p>
                       </div>
                     ) : (
-                      /* Executed Result Display */
+                      /* Executed Result Display: VS Code Integrated Terminal */
                       <div className="space-y-3">
-                        {/* Sample Run Result */}
-                        {sampleResult && (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span
+                        {/* Terminal Control Bar */}
+                        <div className="flex items-center justify-between pb-1.5 border-b border-border/40">
+                          <div className="flex items-center gap-2 font-mono text-xs text-foreground">
+                            <Terminal className="w-3.5 h-3.5 text-primary" />
+                            <span className="font-semibold text-xs">TERMINAL</span>
+                            <span className="text-muted-foreground text-[11px]">
+                              ~/judge/solution.{language === "python" ? "py" : language === "javascript" ? "js" : language === "cpp" ? "cpp" : "java"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {/* Exit Status Badge */}
+                            {(sampleResult || submissionResult) && (
+                              <Badge
                                 className={cn(
-                                  "text-sm font-bold flex items-center gap-1.5",
-                                  sampleResult.status === "sample_passed"
-                                    ? "text-emerald-600 dark:text-emerald-400"
-                                    : sampleResult.status === "compile_error"
-                                    ? "text-amber-600 dark:text-amber-400"
-                                    : "text-rose-600 dark:text-rose-400"
+                                  "text-[10px] font-mono",
+                                  (submissionResult?.status === "accepted" || sampleResult?.status === "sample_passed")
+                                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                    : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30"
                                 )}
                               >
-                                {sampleResult.status === "sample_passed" ? (
-                                  <>
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    <span>Accepted</span>
-                                  </>
-                                ) : sampleResult.status === "compile_error" ? (
-                                  <>
-                                    <AlertTriangle className="w-4 h-4" />
-                                    <span>Compile Error</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <XCircle className="w-4 h-4" />
-                                    <span>Wrong Answer</span>
-                                  </>
-                                )}
-                              </span>
-
-                              <div className="flex items-center gap-3 text-muted-foreground text-[11px] font-mono">
-                                <span>Runtime: <strong>{sampleResult.executionTimeMs} ms</strong></span>
-                                <span>•</span>
-                                <span>Memory: <strong>{sampleResult.memoryUsedMb} MB</strong></span>
-                              </div>
-                            </div>
-
-                            {sampleResult.compileError && (
-                              <div className="p-2.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 font-mono text-xs whitespace-pre-wrap">
-                                {sampleResult.compileError}
-                              </div>
+                                {(submissionResult?.status === "accepted" || sampleResult?.status === "sample_passed")
+                                  ? "exit 0 (Success)"
+                                  : (submissionResult?.status === "compile_error" || sampleResult?.status === "compile_error")
+                                  ? "exit 1 (Compile Error)"
+                                  : "exit 1 (Wrong Answer)"}
+                              </Badge>
                             )}
 
-                            <div className="space-y-1.5 pt-1">
-                              {sampleResult.results?.map((r: any, idx: number) => (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleCopyTerminalOutput}
+                              className="h-6 px-2 text-[11px] gap-1 text-muted-foreground hover:text-foreground font-mono"
+                              title="Copy Terminal Output"
+                            >
+                              {terminalCopied ? (
+                                <Check className="w-3 h-3 text-emerald-500" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                              <span>{terminalCopied ? "Copied" : "Copy"}</span>
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleClearTerminal}
+                              className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground font-mono"
+                              title="Clear Terminal"
+                            >
+                              Clear
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Monospaced Dark Integrated Terminal Screen */}
+                        <div className="rounded-md bg-[#0c0d12] border border-[#272b38] p-3 font-mono text-xs leading-5 text-[#c9d1d9] overflow-x-auto shadow-inner select-text">
+                          {(
+                            submissionResult?.terminalOutput ||
+                            sampleResult?.terminalOutput ||
+                            submissionResult?.compileError ||
+                            sampleResult?.compileError ||
+                            "$ run solution\nExecution completed with status: " + (sampleResult?.status || submissionResult?.status || "done")
+                          )
+                            .split("\n")
+                            .map((line: string, idx: number) => {
+                              let styleClass = "text-[#c9d1d9]";
+                              if (line.startsWith("$")) {
+                                styleClass = "text-cyan-400 font-semibold";
+                              } else if (
+                                line.includes("error:") ||
+                                line.includes("SyntaxError:") ||
+                                line.includes("NameError:") ||
+                                line.includes("ReferenceError:")
+                              ) {
+                                styleClass = "text-rose-400 font-bold bg-rose-500/15 px-1 rounded inline-block";
+                              } else if (line.includes("^")) {
+                                styleClass = "text-amber-400 font-bold";
+                              } else if (line.includes("✓") || line.includes("[PASS]") || line.includes("ACCEPTED") || line.includes("Passed")) {
+                                styleClass = "text-emerald-400 font-semibold";
+                              } else if (line.includes("✗") || line.includes("[FAIL]") || line.includes("WRONG ANSWER")) {
+                                styleClass = "text-rose-400 font-semibold";
+                              } else if (line.startsWith("Process exited with code")) {
+                                styleClass = "text-muted-foreground/80 pt-1 border-t border-white/10 mt-1 block font-semibold";
+                              }
+
+                              return (
+                                <div key={idx} className={styleClass}>
+                                  {line || "\u00A0"}
+                                </div>
+                              );
+                            })}
+                        </div>
+
+                        {/* Test Cases Results Breakdown */}
+                        {sampleResult && sampleResult.results && sampleResult.results.length > 0 && (
+                          <div className="space-y-1.5 pt-1">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground font-mono px-0.5">
+                              <span>Sample Test Results:</span>
+                              <span>
+                                Runtime: <strong>{sampleResult.executionTimeMs} ms</strong> • Memory: <strong>{sampleResult.memoryUsedMb} MB</strong>
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              {sampleResult.results.map((r: any, idx: number) => (
                                 <div
                                   key={idx}
                                   className={cn(
@@ -1472,9 +1670,13 @@ function StudentJudgePage() {
                                       : "bg-rose-500/5 border-rose-500/25 text-rose-700 dark:text-rose-400"
                                   )}
                                 >
-                                  <div className="flex items-center gap-2">
-                                    {r.passed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                                    <span>Case {r.orderIndex}</span>
+                                  <div className="flex items-center gap-1.5">
+                                    {r.passed ? (
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                    ) : (
+                                      <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                                    )}
+                                    <span className="font-medium">Case {r.orderIndex}</span>
                                   </div>
                                   <span>{r.passed ? "Passed" : "Wrong Output"}</span>
                                 </div>
@@ -1483,13 +1685,13 @@ function StudentJudgePage() {
                           </div>
                         )}
 
-                        {/* Full Submission Verdict */}
+                        {/* Full Submission Banner & GitHub Sync */}
                         {submissionResult && (
                           <div className="space-y-2 pt-2 border-t border-border/40">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between text-xs">
                               <span
                                 className={cn(
-                                  "text-sm font-bold flex items-center gap-1.5",
+                                  "font-bold flex items-center gap-1.5",
                                   submissionResult.status === "accepted"
                                     ? "text-emerald-600 dark:text-emerald-400"
                                     : submissionResult.status === "compile_error"
@@ -1500,24 +1702,22 @@ function StudentJudgePage() {
                                 {submissionResult.status === "accepted" ? (
                                   <>
                                     <CheckCircle2 className="w-4 h-4" />
-                                    <span>Submission Accepted</span>
+                                    <span>Submission Accepted (Score: {submissionResult.score}/100)</span>
                                   </>
                                 ) : submissionResult.status === "compile_error" ? (
                                   <>
                                     <AlertTriangle className="w-4 h-4" />
-                                    <span>Compile Error</span>
+                                    <span>Compile Error (Score: 0/100)</span>
                                   </>
                                 ) : (
                                   <>
                                     <XCircle className="w-4 h-4" />
-                                    <span>Wrong Answer</span>
+                                    <span>Wrong Answer (Score: {submissionResult.score}/100)</span>
                                   </>
                                 )}
                               </span>
 
                               <div className="flex items-center gap-3 text-muted-foreground text-[11px] font-mono">
-                                <span>Score: <strong>{submissionResult.score}/100</strong></span>
-                                <span>•</span>
                                 <span>
                                   Testcases: {submissionResult.testCasesPassed}/{submissionResult.totalTestCases}
                                 </span>
@@ -1533,7 +1733,7 @@ function StudentJudgePage() {
                                       Synced to Student GitHub
                                     </span>
                                     <span className="block font-mono text-[11px] text-muted-foreground">
-                                      {submissionResult.githubRepoName || targetRepo}
+                                      {submissionResult.githubRepoName || targetRepo} &bull; {submissionResult.githubFilePath}
                                     </span>
                                   </div>
                                 </div>

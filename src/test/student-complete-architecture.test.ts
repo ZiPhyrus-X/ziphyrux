@@ -315,11 +315,53 @@ describe("Ziphyrus X — Complete Student Workspace Architecture & Security", ()
       expect(json.data.testCasesPassed).toBe(0);
     });
 
+    it("strictly catches undeclared variables in online judge and returns compile_error with diagnostic", async () => {
+      const problem = db.problems[0];
+      const undeclaredJavaCode = `class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        Map<Integer, Integer> map = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int complement = target - undeclaredVar;
+            if (map.containsKey(complement)) {
+                return new int[] { map.get(complement), i };
+            }
+            map.put(nums[i], i);
+        }
+        return new int[] {};
+    }
+}`;
+
+      // Test Run Sample
+      const runRes = await api(
+        `/api/v1/student/judge/problems/${problem.id}/run`,
+        "POST",
+        { language: "java", sourceCode: undeclaredJavaCode }
+      );
+      expect(runRes.status).toBe(200);
+      const runJson = await runRes.json();
+      expect(runJson.data.status).toBe("compile_error");
+      expect(runJson.data.compileError).toContain("cannot find symbol: variable undeclaredVar");
+      expect(runJson.data.terminalOutput).toContain("Solution.java");
+      expect(runJson.data.terminalOutput).toContain("^");
+
+      // Test Submit
+      const submitRes = await api(
+        `/api/v1/student/judge/problems/${problem.id}/submit`,
+        "POST",
+        { language: "java", sourceCode: undeclaredJavaCode }
+      );
+      expect(submitRes.status).toBe(200);
+      const submitJson = await submitRes.json();
+      expect(submitJson.data.status).toBe("compile_error");
+      expect(submitJson.data.score).toBe(0);
+      expect(submitJson.data.githubSynced).toBeFalsy();
+    });
+
     it("verifies code formatter standardizes indentation and structure", () => {
       const unformattedJava = "class Solution {\npublic int[] twoSum(int[] nums, int target) {\nreturn new int[]{};\n}\n}";
       const formattedJava = formatSourceCode(unformattedJava, "java");
       expect(formattedJava).toContain("    public int[] twoSum");
-      expect(formattedJava).toContain("        return new int[]{};");
+      expect(formattedJava).toContain("        return new int[]");
 
       const unformattedPy = "class Solution:\n  def twoSum(self, nums, target):\n    return []";
       const formattedPy = formatSourceCode(unformattedPy, "python");
