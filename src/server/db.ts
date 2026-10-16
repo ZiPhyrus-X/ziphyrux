@@ -143,6 +143,7 @@ export interface JudgeSubmissionRecord {
   githubSynced?: boolean;
   githubCommitSha?: string;
   githubRepoName?: string;
+  githubFilePath?: string;
 }
 
 export interface JudgeDraftRecord {
@@ -1009,6 +1010,7 @@ class DatabaseStore {
   public collegeCodeHistory: CollegeCodeHistoryRecord[] = [];
   public judgeDrafts: JudgeDraftRecord[] = [];
   public githubSyncJobs: GitHubSyncJobRecord[] = [];
+  public githubRepoFiles: Map<string, string> = new Map<string, string>();
   public assessmentAttempts: AssessmentAttemptRecord[] = [];
   public assessmentAnswers: AssessmentAnswerRecord[] = [];
   public studentActivityEvents: StudentActivityEventRecord[] = [];
@@ -1178,7 +1180,7 @@ class DatabaseStore {
         id: "f0000000-0000-0000-0000-000000000001",
         code: "PRB-0001",
         moduleId: "mod-code",
-        title: "Two Sum Variant",
+        title: "Two Sum",
         difficulty: "Easy",
         topic: "Arrays",
         version: "v1",
@@ -1335,7 +1337,7 @@ class DatabaseStore {
       {
         id: "sub-101",
         problemId: "f0000000-0000-0000-0000-000000000001",
-        problemTitle: "Two Sum Variant",
+        problemTitle: "Two Sum",
         studentId: "stu-1",
         studentName: "Aarav Sharma",
         collegeId: "c0000000-0000-0000-0000-000000000001",
@@ -3091,8 +3093,8 @@ class DatabaseStore {
         repoName: "ZiphyrusX-Aarav-001",
         status: "synced",
         commitSha: "a1b2c3d4e5f6",
-        filePath: "solutions/PRB-0001/two_sum.py",
-        commitMessage: "feat: solve Two Sum Variant (Accepted, 100/100)",
+        filePath: "Python/twoSum.py",
+        commitMessage: "feat: add Two Sum solution in Python",
         retryCount: 0,
         syncedAt: subDays(now, 3).toISOString(),
         createdAt: subDays(now, 3).toISOString(),
@@ -3105,7 +3107,7 @@ class DatabaseStore {
         studentId: "stu-1",
         collegeId: "c0000000-0000-0000-0000-000000000001",
         activityType: "coding_submission",
-        title: "Accepted: Two Sum Variant",
+        title: "Accepted: Two Sum",
         description: "Passed 4/4 test cases (Python 3) in 42ms",
         referenceId: "sub-101",
         metadata: { verdict: "accepted", problemCode: "PRB-0001", score: 100 },
@@ -10552,12 +10554,37 @@ class DatabaseStore {
     if (status === "accepted") {
       const repoName = computeStudentGitHubRepoName(student);
       const commitSha = `sha-${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 8)}`;
-      const langExt = language === "python" ? "py" : language === "javascript" ? "js" : language === "java" ? "java" : "cpp";
-      const filePath = `solutions/${problem.code}/${problem.code}.${langExt}`;
+
+      const langInfo = getLanguageFolderAndExt(language);
+      const camelCaseTitle = toCamelCase(problem.title);
+      const filePath = `${langInfo.folder}/${camelCaseTitle}.${langInfo.ext}`;
+
+      const detectedApproach = detectApproach(sourceCode, language);
+      const fileKey = `${student.id}:${repoName}:${filePath}`;
+      const existingContent = this.githubRepoFiles.get(fileKey);
+
+      const { updatedContent, approachIndex } = formatSolutionWithApproachHeader({
+        existingContent,
+        problemTitle: problem.title,
+        sourceCode,
+        language,
+        detectedApproach,
+        executionTimeMs,
+        memoryUsedMb,
+        score,
+      });
+
+      this.githubRepoFiles.set(fileKey, updatedContent);
+
+      const commitMessage =
+        approachIndex === 1
+          ? `feat: add ${problem.title} solution in ${langInfo.folder}`
+          : `feat: add approach ${approachIndex} (${detectedApproach}) for ${problem.title} in ${langInfo.folder}`;
 
       submission.githubSynced = true;
       submission.githubCommitSha = commitSha;
       submission.githubRepoName = repoName;
+      submission.githubFilePath = filePath;
 
       const syncJob: GitHubSyncJobRecord = {
         id: `sync-${Date.now()}`,
@@ -10567,7 +10594,7 @@ class DatabaseStore {
         status: "synced",
         commitSha,
         filePath,
-        commitMessage: `feat: solve ${problem.title} (${problem.code}) - Accepted [${score}/100]`,
+        commitMessage,
         retryCount: 0,
         syncedAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),
@@ -10583,7 +10610,7 @@ class DatabaseStore {
         title: `Accepted: ${problem.title}`,
         description: `Passed ${testCasesPassed}/${totalTestCases} test cases (${language}) in ${executionTimeMs}ms`,
         referenceId: submission.id,
-        metadata: { verdict: "accepted", problemCode: problem.code, score, repoName, commitSha },
+        metadata: { verdict: "accepted", problemCode: problem.code, score, repoName, commitSha, filePath, approachIndex, detectedApproach },
         createdAt: new Date().toISOString(),
       });
 
@@ -10868,6 +10895,10 @@ class DatabaseStore {
       recentSyncs: jobs.slice(0, 10),
     };
   }
+
+  public getGitHubRepoFile(studentId: string, repoName: string, filePath: string): string | undefined {
+    return this.githubRepoFiles.get(`${studentId}:${repoName}:${filePath}`);
+  }
 }
 
 /** Computes GitHub repository name adhering to ZiphyrusX-{firstName}-{last3DigitsOfUSN} */
@@ -10885,6 +10916,159 @@ export function computeStudentGitHubRepoName(student: { name: string; usn: strin
     last3Digits = cleanUsn.length >= 3 ? cleanUsn.slice(-3) : cleanUsn.padStart(3, "0");
   }
   return `ZiphyrusX-${cleanFirst}-${last3Digits}`;
+}
+
+/** Converts a problem title to camelCase: e.g. "Two Sum" -> "twoSum", "Balanced Brackets" -> "balancedBrackets", "LRU Cache" -> "lruCache" */
+export function toCamelCase(str: string): string {
+  const words = (str || "")
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return "solution";
+  return words
+    .map((w, i) =>
+      i === 0
+        ? w.toLowerCase()
+        : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+    )
+    .join("");
+}
+
+/** Returns the language folder and file extension according to repository conventions */
+export function getLanguageFolderAndExt(language: string): { folder: string; ext: string } {
+  const norm = (language || "").trim().toLowerCase();
+  if (norm === "java") {
+    return { folder: "Java", ext: "java" };
+  }
+  if (norm === "python" || norm === "py" || norm === "python3") {
+    return { folder: "Python", ext: "py" };
+  }
+  if (norm === "cpp" || norm === "c++" || norm === "cplusplus") {
+    return { folder: "Cpp", ext: "cpp" };
+  }
+  if (norm === "javascript" || norm === "js" || norm === "node") {
+    return { folder: "JavaScript", ext: "js" };
+  }
+  const clean = norm.replace(/[^a-z0-9]/g, "");
+  const folder = clean ? clean.charAt(0).toUpperCase() + clean.slice(1) : "Other";
+  return { folder, ext: clean || "txt" };
+}
+
+/** Automatic approach detection heuristic engine */
+export function detectApproach(sourceCode: string, language?: string): string {
+  const code = sourceCode || "";
+
+  // Strip Java/C++ array initializer brackets (e.g. `new int[]{}`) so they don't trigger dict `{}` check
+  const codeWithoutArrayInitializers = code.replace(/new\s+[a-zA-Z0-9_<>[\]]+\s*\{\s*\}/g, "");
+
+  // 1. HashMaps / Dictionary Lookup (O(N) Optimal)
+  const normLang = (language || "").toLowerCase();
+  const isPythonOrJs = !normLang || normLang.includes("py") || normLang.includes("js");
+  const hasHashMap =
+    code.includes("HashMap") ||
+    code.includes("Map<") ||
+    code.includes("unordered_map") ||
+    /\bdict\b/.test(code) ||
+    /=\s*\{\s*\}/.test(code) ||
+    (isPythonOrJs && codeWithoutArrayInitializers.includes("{}"));
+
+  if (hasHashMap) {
+    return "HashMaps / Dictionary Lookup (O(N) Optimal)";
+  }
+
+  // 2. Binary Search (O(log N))
+  if (
+    /mid\s*=/.test(code) ||
+    code.includes("mid =") ||
+    code.includes("binarySearch") ||
+    code.includes("lower_bound") ||
+    code.includes("upper_bound")
+  ) {
+    return "Binary Search (O(log N))";
+  }
+
+  // 3. Two Pointers / Sliding Window
+  if (
+    code.includes("left") ||
+    code.includes("right") ||
+    code.includes("low") ||
+    code.includes("high") ||
+    /while\s*\(\s*left\s*<\s*right\s*\)/.test(code) ||
+    code.includes("while (left < right)")
+  ) {
+    return "Two Pointers / Sliding Window";
+  }
+
+  // 4. Dynamic Programming / Memoization
+  if (
+    code.includes("dp[") ||
+    code.includes("dp =") ||
+    code.includes("memo") ||
+    code.includes("cache")
+  ) {
+    return "Dynamic Programming / Memoization";
+  }
+
+  // 5. Brute Force / Nested Iteration
+  const forMatches = code.match(/\bfor\b/g);
+  if ((forMatches && forMatches.length >= 2) || /\bfor\b[\s\S]*?\bfor\b/.test(code)) {
+    return "Brute Force / Nested Iteration";
+  }
+
+  // 6. Otherwise default to Alternative Solution
+  return "Alternative Solution";
+}
+
+/** Formats source code with metadata comment banner (Approach 1 vs Approach N append) */
+export function formatSolutionWithApproachHeader(params: {
+  existingContent?: string;
+  problemTitle: string;
+  sourceCode: string;
+  language: string;
+  detectedApproach: string;
+  executionTimeMs: number;
+  memoryUsedMb: number;
+  score: number;
+}): { updatedContent: string; approachIndex: number } {
+  const {
+    existingContent,
+    problemTitle,
+    sourceCode,
+    language,
+    detectedApproach,
+    executionTimeMs,
+    memoryUsedMb,
+    score,
+  } = params;
+
+  const isPython = (language || "").toLowerCase().includes("py");
+  const dateUtc = new Date().toUTCString();
+
+  if (!existingContent || existingContent.trim().length === 0) {
+    // Initial file creation (Approach 1)
+    let banner = "";
+    if (isPython) {
+      banner = `"""\nPROBLEM: ${problemTitle}\nAPPROACH 1: ${detectedApproach}\nDATE: ${dateUtc}\nRUNTIME: ${executionTimeMs} ms | MEMORY: ${memoryUsedMb} MB | SCORE: ${score}/100\n"""\n\n${sourceCode.trim()}\n`;
+    } else {
+      banner = `/**\n * PROBLEM: ${problemTitle}\n * APPROACH 1: ${detectedApproach}\n * DATE: ${dateUtc}\n * RUNTIME: ${executionTimeMs} ms | MEMORY: ${memoryUsedMb} MB | SCORE: ${score}/100\n */\n\n${sourceCode.trim()}\n`;
+    }
+    return { updatedContent: banner, approachIndex: 1 };
+  } else {
+    // Subsequent approach appended (Approach N)
+    const matches = existingContent.match(/APPROACH\s+\d+/gi) || [];
+    const approachIndex = matches.length + 1;
+
+    let banner = "";
+    if (isPython) {
+      banner = `"""\nAPPROACH ${approachIndex}: ${detectedApproach}\nDATE: ${dateUtc}\nRUNTIME: ${executionTimeMs} ms | MEMORY: ${memoryUsedMb} MB | SCORE: ${score}/100\n"""\n\n${sourceCode.trim()}\n`;
+    } else {
+      banner = `/**\n * APPROACH ${approachIndex}: ${detectedApproach}\n * DATE: ${dateUtc}\n * RUNTIME: ${executionTimeMs} ms | MEMORY: ${memoryUsedMb} MB | SCORE: ${score}/100\n */\n\n${sourceCode.trim()}\n`;
+    }
+
+    const updatedContent = `${existingContent.trimEnd()}\n\n\n${banner}`;
+    return { updatedContent, approachIndex };
+  }
 }
 
 // Global authoritative database instance

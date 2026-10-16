@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { db, computeStudentGitHubRepoName } from "../server/db";
+import { describe, it, expect, beforeEach, beforeAll } from "vitest";
+import { db, computeStudentGitHubRepoName, toCamelCase, getLanguageFolderAndExt, detectApproach } from "../server/db";
 import { handleApiRequest } from "../server/api-router";
 import { homeForRole } from "../lib/auth/service";
 import type { AuthenticatedUser } from "../server/types";
@@ -570,5 +570,175 @@ describe("Ziphyrus X — Complete Student Workspace Architecture & Security", ()
       expect(json.error.code).toBe("invalid_request");
     });
   });
+
+  // =========================================================================
+  // 11. LANGUAGE-BASED MULTI-APPROACH GITHUB SYNC FOR ONLINE JUDGE
+  // =========================================================================
+  describe("11. Language-Based Multi-Approach GitHub Sync for Online Judge", () => {
+    beforeAll(() => {
+      // Clear any previous twoSum files to guarantee pristine initial run
+      db.githubRepoFiles.delete("stu-1:ZiphyrusX-Aarav-001:Java/twoSum.java");
+      db.githubRepoFiles.delete("stu-1:ZiphyrusX-Aarav-001:Python/twoSum.py");
+    });
+
+    it("1. Solving 'Two Sum' in Java creates Java/twoSum.java with Approach 1 header", async () => {
+      const problem = db.problems.find((p) => p.code === "PRB-0001") || db.problems[0];
+      const javaBruteCode = `
+public class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        for (int i = 0; i < nums.length; i++) {
+            for (int j = i + 1; j < nums.length; j++) {
+                if (nums[i] + nums[j] == target) {
+                    return new int[]{i, j};
+                }
+            }
+        }
+        return new int[]{};
+    }
+}
+      `.trim();
+
+      const res = await api(
+        `/api/v1/student/judge/problems/${problem.id}/submit`,
+        "POST",
+        { language: "java", sourceCode: javaBruteCode }
+      );
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.status).toBe("accepted");
+      expect(json.data.githubSynced).toBe(true);
+      expect(json.data.githubFilePath).toBe("Java/twoSum.java");
+
+      const syncJob = db.githubSyncJobs.find((j) => j.submissionId === json.data.id);
+      expect(syncJob).toBeDefined();
+      expect(syncJob?.filePath).toBe("Java/twoSum.java");
+      expect(syncJob?.commitMessage).toBe("feat: add Two Sum solution in Java");
+
+      const fileContent = db.getGitHubRepoFile("stu-1", syncJob!.repoName, "Java/twoSum.java");
+      expect(fileContent).toBeDefined();
+      expect(fileContent).toContain("PROBLEM: Two Sum");
+      expect(fileContent).toContain("APPROACH 1: Brute Force / Nested Iteration");
+      expect(fileContent).toContain("RUNTIME:");
+      expect(fileContent).toContain("MEMORY:");
+      expect(fileContent).toContain("SCORE: 100/100");
+    });
+
+    it("2. Solving 'Two Sum' in Java again with HashMap appends Approach 2 to Java/twoSum.java", async () => {
+      const problem = db.problems.find((p) => p.code === "PRB-0001") || db.problems[0];
+      const javaHashMapCode = `
+import java.util.HashMap;
+import java.util.Map;
+
+public class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        Map<Integer, Integer> map = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int complement = target - nums[i];
+            if (map.containsKey(complement)) {
+                return new int[]{map.get(complement), i};
+            }
+            map.put(nums[i], i);
+        }
+        return new int[]{};
+    }
+}
+      `.trim();
+
+      const res = await api(
+        `/api/v1/student/judge/problems/${problem.id}/submit`,
+        "POST",
+        { language: "java", sourceCode: javaHashMapCode }
+      );
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.status).toBe("accepted");
+      expect(json.data.githubFilePath).toBe("Java/twoSum.java");
+
+      const syncJob = db.githubSyncJobs.find((j) => j.submissionId === json.data.id);
+      expect(syncJob?.filePath).toBe("Java/twoSum.java");
+      expect(syncJob?.commitMessage).toBe(
+        "feat: add approach 2 (HashMaps / Dictionary Lookup (O(N) Optimal)) for Two Sum in Java"
+      );
+
+      const fileContent = db.getGitHubRepoFile("stu-1", syncJob!.repoName, "Java/twoSum.java");
+      expect(fileContent).toBeDefined();
+      expect(fileContent).toContain("APPROACH 1: Brute Force / Nested Iteration");
+      expect(fileContent).toContain("APPROACH 2: HashMaps / Dictionary Lookup (O(N) Optimal)");
+      expect(fileContent).toContain("\n\n\n/**\n * APPROACH 2:");
+    });
+
+    it("3. Solving 'Two Sum' in Python creates Python/twoSum.py under the Python/ folder", async () => {
+      const problem = db.problems.find((p) => p.code === "PRB-0001") || db.problems[0];
+      const pythonCode = `
+def twoSum(nums, target):
+    seen = {}
+    for i, num in enumerate(nums):
+        diff = target - num
+        if diff in seen:
+            return [seen[diff], i]
+        seen[num] = i
+    return []
+      `.trim();
+
+      const res = await api(
+        `/api/v1/student/judge/problems/${problem.id}/submit`,
+        "POST",
+        { language: "python", sourceCode: pythonCode }
+      );
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.status).toBe("accepted");
+      expect(json.data.githubFilePath).toBe("Python/twoSum.py");
+
+      const syncJob = db.githubSyncJobs.find((j) => j.submissionId === json.data.id);
+      expect(syncJob).toBeDefined();
+      expect(syncJob?.filePath).toBe("Python/twoSum.py");
+      expect(syncJob?.commitMessage).toBe("feat: add Two Sum solution in Python");
+
+      const fileContent = db.getGitHubRepoFile("stu-1", syncJob!.repoName, "Python/twoSum.py");
+      expect(fileContent).toBeDefined();
+      expect(fileContent).toContain('"""');
+      expect(fileContent).toContain("PROBLEM: Two Sum");
+      expect(fileContent).toContain("APPROACH 1: HashMaps / Dictionary Lookup (O(N) Optimal)");
+    });
+
+    it("validates approach detection heuristics for all algorithmic paradigms", () => {
+      expect(detectApproach("unordered_map<int, int> lookup;", "cpp")).toBe(
+        "HashMaps / Dictionary Lookup (O(N) Optimal)"
+      );
+      expect(detectApproach("seen = dict()", "python")).toBe(
+        "HashMaps / Dictionary Lookup (O(N) Optimal)"
+      );
+      expect(detectApproach("while (left < right) { left++; right--; }", "cpp")).toBe(
+        "Two Pointers / Sliding Window"
+      );
+      expect(detectApproach("int mid = left + (right - left) / 2; binarySearch();", "java")).toBe(
+        "Binary Search (O(log N))"
+      );
+      expect(detectApproach("dp[i] = dp[i-1] + dp[i-2]; memo[i] = res;", "python")).toBe(
+        "Dynamic Programming / Memoization"
+      );
+      expect(detectApproach("for (int i = 0; i < n; i++) for (int j = 0; j < m; j++) {}", "java")).toBe(
+        "Brute Force / Nested Iteration"
+      );
+      expect(detectApproach("int a = 1; return a;", "java")).toBe(
+        "Alternative Solution"
+      );
+    });
+
+    it("converts problem titles to proper camelCase file names and language extensions", () => {
+      expect(toCamelCase("Two Sum")).toBe("twoSum");
+      expect(toCamelCase("Balanced Brackets")).toBe("balancedBrackets");
+      expect(toCamelCase("LRU Cache")).toBe("lruCache");
+      expect(getLanguageFolderAndExt("java")).toEqual({ folder: "Java", ext: "java" });
+      expect(getLanguageFolderAndExt("python")).toEqual({ folder: "Python", ext: "py" });
+      expect(getLanguageFolderAndExt("cpp")).toEqual({ folder: "Cpp", ext: "cpp" });
+      expect(getLanguageFolderAndExt("javascript")).toEqual({ folder: "JavaScript", ext: "js" });
+    });
+  });
 });
+
 
