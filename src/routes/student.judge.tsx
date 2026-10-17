@@ -39,6 +39,10 @@ import {
   Layers,
   Activity,
   Zap,
+  X,
+  ArrowUpDown,
+  SlidersHorizontal,
+  GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -383,11 +387,27 @@ function StudentJudgePage() {
   const [loading, setLoading] = useState(true);
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
 
-  // Filters
+  // Filters & Problem Drawer
   const [search, setSearch] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [topicFilter, setTopicFilter] = useState("all");
   const [problemListOpen, setProblemListOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"default" | "asc" | "desc">("default");
+  const [allSubmissions, setAllSubmissions] = useState<any[]>([]);
+
+  // Split Pane Resizing State (Problem Statement vs Code Editor)
+  const [leftPanelWidth, setLeftPanelWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem("zx_judge_split_ratio");
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (!isNaN(parsed) && parsed >= 20 && parsed <= 80) return parsed;
+      }
+    } catch {}
+    return 46; // default 46% for Problem Statement, matching LeetCode
+  });
+  const [isDraggingSplitter, setIsDraggingSplitter] = useState(false);
+  const splitPaneContainerRef = useRef<HTMLDivElement>(null);
 
   // Editor State
   const [language, setLanguage] = useState("java");
@@ -458,16 +478,18 @@ function StudentJudgePage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }, [timerSeconds]);
 
-  // Load problem list & profile
+  // Load problem list & profile & all submissions
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        const [probRes, profileRes] = await Promise.all([
+        const [probRes, profileRes, subsRes] = await Promise.all([
           api.student.judge.problems(),
           api.student.profile().catch(() => null),
+          api.student.judge.submissions().catch(() => []),
         ]);
         setProblems(probRes || []);
+        if (subsRes) setAllSubmissions(subsRes);
         if (probRes && probRes.length > 0 && !selectedProblemId) {
           setSelectedProblemId(probRes[0].id);
         }
@@ -487,19 +509,92 @@ function StudentJudgePage() {
     loadData();
   }, []);
 
-  // Filtered problem list
+  // Track solved problems for current student
+  const solvedProblemIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of allSubmissions) {
+      if (s.status === "accepted" && s.problemId) {
+        set.add(s.problemId);
+      }
+    }
+    return set;
+  }, [allSubmissions]);
+
+  const solvedCount = solvedProblemIds.size;
+
+  // Filtered & Sorted problem list
   const filteredProblems = useMemo(() => {
-    return problems.filter((p) => {
+    let list = problems.filter((p) => {
       const matchSearch =
         !search ||
         p.title.toLowerCase().includes(search.toLowerCase()) ||
         p.code.toLowerCase().includes(search.toLowerCase()) ||
         p.topic.toLowerCase().includes(search.toLowerCase());
-      const matchDiff = difficultyFilter === "all" || p.difficulty.toLowerCase() === difficultyFilter.toLowerCase();
-      const matchTopic = topicFilter === "all" || p.topic.toLowerCase() === topicFilter.toLowerCase();
+      const matchDiff =
+        difficultyFilter === "all" ||
+        p.difficulty.toLowerCase() === difficultyFilter.toLowerCase();
+      const matchTopic =
+        topicFilter === "all" || p.topic.toLowerCase() === topicFilter.toLowerCase();
       return matchSearch && matchDiff && matchTopic;
     });
-  }, [problems, search, difficultyFilter, topicFilter]);
+
+    if (sortOrder === "asc") {
+      list = [...list].sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortOrder === "desc") {
+      list = [...list].sort((a, b) => b.title.localeCompare(a.title));
+    }
+
+    return list;
+  }, [problems, search, difficultyFilter, topicFilter, sortOrder]);
+
+  // Split-pane Drag Handlers (Left/Right resizing for Problem Statement)
+  const startDraggingSplitter = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsDraggingSplitter(true);
+  };
+
+  useEffect(() => {
+    if (!isDraggingSplitter) return;
+
+    const handlePointerMove = (e: MouseEvent | TouchEvent) => {
+      if (!splitPaneContainerRef.current) return;
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      const containerRect = splitPaneContainerRef.current.getBoundingClientRect();
+      const containerWidth = containerRect.width;
+      if (containerWidth <= 0) return;
+
+      const offsetLeft = clientX - containerRect.left;
+      const percentage = (offsetLeft / containerWidth) * 100;
+      const clamped = Math.max(20, Math.min(80, percentage));
+      setLeftPanelWidth(clamped);
+      try {
+        localStorage.setItem("zx_judge_split_ratio", clamped.toFixed(1));
+      } catch {}
+    };
+
+    const handlePointerUp = () => {
+      setIsDraggingSplitter(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    window.addEventListener("mousemove", handlePointerMove);
+    window.addEventListener("mouseup", handlePointerUp);
+    window.addEventListener("touchmove", handlePointerMove, { passive: false });
+    window.addEventListener("touchend", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handlePointerMove);
+      window.removeEventListener("mouseup", handlePointerUp);
+      window.removeEventListener("touchmove", handlePointerMove);
+      window.removeEventListener("touchend", handlePointerUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isDraggingSplitter]);
 
   // Current problem & position in filtered list
   const currentProblemIndex = useMemo(() => {
@@ -1020,6 +1115,7 @@ function StudentJudgePage() {
       setSubmissionResult(res);
 
       if (res.status === "accepted") {
+        setAllSubmissions((prev) => [res, ...prev]);
         toast.success("Accepted! All test cases passed.", {
           description: `Automatically synced to GitHub repo '${res.githubRepoName || targetRepo}'`,
         });
@@ -1137,7 +1233,7 @@ function StudentJudgePage() {
           >
             <ListFilter className="w-3.5 h-3.5 text-primary" />
             <span>Problem List</span>
-            <ChevronDown className="w-3 h-3 text-muted-foreground" />
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
           </Button>
 
           {/* Prev / Next / Random */}
@@ -1260,14 +1356,25 @@ function StudentJudgePage() {
         </div>
       </div>
 
+      {/* Overlay to prevent text selection and capture mouse during split-drag */}
+      {isDraggingSplitter && (
+        <div className="fixed inset-0 z-50 cursor-col-resize select-none pointer-events-auto bg-transparent" />
+      )}
+
       {/* -------------------------------------------------------------------------- */}
-      {/* MAIN 2-COLUMN LEETCODE SPLIT WORKSPACE                                      */}
+      {/* MAIN 2-COLUMN LEETCODE RESIZABLE SPLIT WORKSPACE                           */}
       {/* -------------------------------------------------------------------------- */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-1.5 overflow-hidden">
+      <div
+        ref={splitPaneContainerRef}
+        className="flex-1 min-h-0 flex flex-col lg:flex-row gap-0 overflow-hidden relative"
+      >
         {/* ======================================================================== */}
         {/* LEFT COLUMN: Problem Details / Editorial / Solutions / Submissions       */}
         {/* ======================================================================== */}
-        <div className="h-full min-h-0 flex flex-col rounded-lg border border-border/70 bg-card/75 backdrop-blur-xl overflow-hidden shadow-xs">
+        <div
+          style={{ width: `${leftPanelWidth}%` }}
+          className="h-full min-h-0 flex flex-col rounded-lg border border-border/70 bg-card/75 backdrop-blur-xl overflow-hidden shadow-xs shrink-0 max-lg:!w-full"
+        >
           {/* Top Tabs Bar */}
           <div className="shrink-0 border-b border-border/60 bg-muted/20 px-2 py-1 flex items-center justify-between">
             <div className="flex items-center gap-1">
@@ -1791,9 +1898,47 @@ function StudentJudgePage() {
         </div>
 
         {/* ======================================================================== */}
+        {/* RESIZABLE DRAG HANDLE / SPLITTER (Visible on lg screens)                 */}
+        {/* ======================================================================== */}
+        <div
+          role="separator"
+          tabIndex={0}
+          aria-valuenow={Math.round(leftPanelWidth)}
+          aria-label="Resize problem statement width"
+          onMouseDown={startDraggingSplitter}
+          onTouchStart={startDraggingSplitter}
+          onDoubleClick={() => setLeftPanelWidth(46)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              setLeftPanelWidth((w) => Math.max(20, w - 2));
+            } else if (e.key === "ArrowRight") {
+              e.preventDefault();
+              setLeftPanelWidth((w) => Math.min(80, w + 2));
+            }
+          }}
+          className={cn(
+            "hidden lg:flex w-2.5 shrink-0 items-center justify-center cursor-col-resize group relative select-none z-10 transition-colors mx-0.5",
+            isDraggingSplitter && "cursor-col-resize"
+          )}
+          title="Drag left/right to resize Problem Statement (Double-click to reset to 46%)"
+        >
+          {/* Visual pill handle */}
+          <div
+            className={cn(
+              "w-1 h-8 rounded-full bg-border/80 group-hover:bg-primary group-hover:h-12 group-hover:w-1.5 transition-all shadow-xs",
+              isDraggingSplitter && "bg-primary h-14 w-1.5 shadow-[0_0_8px_rgba(34,211,238,0.7)]"
+            )}
+          />
+        </div>
+
+        {/* ======================================================================== */}
         {/* RIGHT COLUMN: Code Editor (Top) & Execution Console (Bottom)             */}
         {/* ======================================================================== */}
-        <div className="h-full min-h-0 flex flex-col gap-1.5 overflow-hidden">
+        <div
+          style={{ width: `calc(${100 - leftPanelWidth}% - 10px)` }}
+          className="h-full min-h-0 flex flex-col flex-1 gap-1.5 overflow-hidden max-lg:!w-full"
+        >
           {/* ---------------------------------------------------------------------- */}
           {/* TOP PANE: Code Editor                                                  */}
           {/* ---------------------------------------------------------------------- */}
@@ -3152,91 +3297,170 @@ function StudentJudgePage() {
       </div>
 
       {/* -------------------------------------------------------------------------- */}
-      {/* PROBLEM PICKER MODAL DIALOG                                                */}
+      {/* LEETCODE PROBLEM LIST FLYOUT DRAWER (SLIDE-OVER PANEL)                      */}
       {/* -------------------------------------------------------------------------- */}
-      <Dialog open={problemListOpen} onOpenChange={setProblemListOpen}>
-        <DialogContent className="max-w-2xl bg-card border-border text-foreground">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <Code2 className="w-5 h-5 text-primary" />
-              <span>Select Coding Problem</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Search and filter curated problems across topics and difficulty levels.
-            </DialogDescription>
-          </DialogHeader>
+      {/* Overlay Backdrop */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity duration-200",
+          problemListOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => setProblemListOpen(false)}
+      />
 
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
-                <Input
-                  placeholder="Filter by title, topic, or code..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 text-xs border-border bg-background"
-                />
-              </div>
-              <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
-                <SelectTrigger className="h-9 w-28 text-xs border-border bg-background font-mono">
-                  <SelectValue placeholder="Diff" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border text-xs">
-                  <SelectItem value="all">All Difficulties</SelectItem>
-                  <SelectItem value="Easy">Easy</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Hard">Hard</SelectItem>
-                </SelectContent>
-              </Select>
+      {/* Flyout Panel Drawer */}
+      <aside
+        className={cn(
+          "fixed top-0 bottom-0 left-0 z-50 w-full max-w-[380px] sm:max-w-[410px] bg-[#1a1a1a] text-neutral-200 shadow-2xl border-r border-[#2c2c2c] flex flex-col transition-transform duration-300 ease-out select-none font-sans",
+          problemListOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        {/* Drawer Header */}
+        <div className="shrink-0 px-4 py-3.5 border-b border-[#262626] flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-white tracking-tight">
+            <span>Problem List</span>
+            <ChevronRight className="w-4 h-4 text-neutral-400" />
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Solved Counter */}
+            <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-sans">
+              <span className="w-2.5 h-2.5 rounded-full border border-neutral-500 inline-block" />
+              <span>{solvedCount}/{problems.length || 0} Solved</span>
             </div>
 
-            <div className="max-h-80 overflow-y-auto divide-y divide-border/40 border border-border/50 rounded-lg">
-              {filteredProblems.map((p, idx) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedProblemId(p.id);
-                    setProblemListOpen(false);
-                  }}
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setProblemListOpen(false)}
+              className="text-neutral-400 hover:text-white p-1 rounded-md hover:bg-[#282828] transition-colors"
+              title="Close Problem List"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Search, Sort & Filter Row */}
+        <div className="shrink-0 px-3.5 py-2.5 border-b border-[#242424] flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+            <input
+              type="text"
+              placeholder="Search questions"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-8 pl-8 pr-7 text-xs bg-[#282828] text-white placeholder:text-neutral-500 rounded-lg border border-transparent focus:border-neutral-600 focus:outline-none transition-colors"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white text-xs w-4 h-4 flex items-center justify-center rounded-full hover:bg-neutral-700"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Sort Button */}
+          <button
+            type="button"
+            onClick={() => setSortOrder(prev => prev === "default" ? "asc" : prev === "asc" ? "desc" : "default")}
+            className={cn(
+              "h-8 w-8 shrink-0 flex items-center justify-center rounded-lg text-neutral-400 hover:text-white transition-colors border border-transparent",
+              sortOrder !== "default" ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40" : "bg-[#282828] hover:bg-[#323232]"
+            )}
+            title={`Sort: ${sortOrder === "default" ? "Default Order" : sortOrder === "asc" ? "Title (A-Z)" : "Title (Z-A)"}`}
+          >
+            <ArrowUpDown className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Difficulty Filter Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setDifficultyFilter(prev => {
+                if (prev === "all") return "Easy";
+                if (prev === "Easy") return "Medium";
+                if (prev === "Medium") return "Hard";
+                return "all";
+              });
+            }}
+            className={cn(
+              "h-8 px-2 shrink-0 flex items-center gap-1 rounded-lg text-xs transition-colors border border-transparent",
+              difficultyFilter === "all"
+                ? "bg-[#282828] hover:bg-[#323232] text-neutral-400 hover:text-white"
+                : "bg-cyan-500/20 text-cyan-400 border-cyan-500/40"
+            )}
+            title={`Filter Difficulty: ${difficultyFilter}`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            {difficultyFilter !== "all" && (
+              <span className="text-[10px] font-medium">{difficultyFilter === "Medium" ? "Med." : difficultyFilter}</span>
+            )}
+          </button>
+        </div>
+
+        {/* Scrollable Problem Items List */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5 custom-scrollbar">
+          {filteredProblems.map((p, idx) => {
+            const isSelected = p.id === currentProblem?.id;
+            const diffLabel = p.difficulty === "Medium" ? "Med." : p.difficulty;
+            const isSolved = solvedProblemIds.has(p.id);
+
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setSelectedProblemId(p.id);
+                  setProblemListOpen(false);
+                }}
+                className={cn(
+                  "w-full text-left px-3.5 py-3 rounded-lg text-xs transition-all flex items-center justify-between group",
+                  isSelected
+                    ? "bg-white text-neutral-900 font-semibold shadow-md"
+                    : "bg-[#242424] hover:bg-[#2c2c2c] text-[#d4d4d4] hover:text-white font-medium"
+                )}
+              >
+                <div className="flex items-center gap-2 truncate pr-2">
+                  {isSolved && (
+                    <CheckCircle2
+                      className={cn(
+                        "w-3.5 h-3.5 shrink-0",
+                        isSelected ? "text-emerald-600" : "text-emerald-400"
+                      )}
+                    />
+                  )}
+                  <span className="truncate">
+                    {idx + 1}. {p.title}
+                  </span>
+                </div>
+
+                <span
                   className={cn(
-                    "w-full text-left px-3 py-2.5 text-xs flex items-center justify-between transition-colors",
-                    p.id === currentProblem?.id
-                      ? "bg-primary/10 text-primary font-semibold"
-                      : "hover:bg-muted/40 text-foreground"
+                    "text-xs shrink-0 font-medium",
+                    p.difficulty === "Easy"
+                      ? isSelected ? "text-emerald-600 font-semibold" : "text-[#00b8a3]"
+                      : p.difficulty === "Medium"
+                      ? isSelected ? "text-amber-600 font-semibold" : "text-[#ffc01e]"
+                      : isSelected ? "text-rose-600 font-semibold" : "text-[#ff375f]"
                   )}
                 >
-                  <div className="flex items-center gap-2 truncate pr-2">
-                    <span className="font-mono text-muted-foreground text-[11px] w-6 shrink-0">
-                      {idx + 1}.
-                    </span>
-                    <span className="truncate">{p.title}</span>
-                  </div>
+                  {diffLabel}
+                </span>
+              </button>
+            );
+          })}
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline">
-                      {p.topic}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-[10px] py-0 px-1.5 font-medium",
-                        p.difficulty === "Easy"
-                          ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                          : p.difficulty === "Medium"
-                          ? "text-amber-600 dark:text-amber-400 border-amber-500/30"
-                          : "text-rose-600 dark:text-rose-400 border-rose-500/30"
-                      )}
-                    >
-                      {p.difficulty}
-                    </Badge>
-                  </div>
-                </button>
-              ))}
+          {filteredProblems.length === 0 && (
+            <div className="p-8 text-center text-xs text-neutral-500">
+              No questions found matching your filter
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          )}
+        </div>
+      </aside>
     </div>
   );
 }
