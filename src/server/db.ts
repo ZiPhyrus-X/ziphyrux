@@ -11536,6 +11536,31 @@ class DatabaseStore {
       createdAt: new Date().toISOString(),
     });
 
+    // Synchronize to student intelligence profile
+    const assessment = this.assessments.find((a) => a.id === attempt.assessmentId);
+    if (this.studentIntelligence[student.id]) {
+      const intel = this.studentIntelligence[student.id];
+      if (!intel.assessmentHistory) intel.assessmentHistory = [];
+      intel.assessmentHistory.unshift({
+        assessmentTitle: attempt.assessmentTitle,
+        domain: assessment?.domain || "Technical",
+        score: attempt.percentage,
+        completedAt: attempt.submittedAt || new Date().toISOString(),
+      });
+
+      // If attempt demonstrates higher competency, update domain skill
+      const domainKey = (assessment?.domain || "Technical").toLowerCase();
+      if (domainKey.includes("tech") && (intel.skills.technical === null || attempt.percentage > (intel.skills.technical ?? 0))) {
+        intel.skills.technical = attempt.percentage;
+      } else if (domainKey.includes("apt") && (intel.skills.aptitude === null || attempt.percentage > (intel.skills.aptitude ?? 0))) {
+        intel.skills.aptitude = attempt.percentage;
+      } else if (domainKey.includes("verb") && (intel.skills.verbal === null || attempt.percentage > (intel.skills.verbal ?? 0))) {
+        intel.skills.verbal = attempt.percentage;
+      } else if (domainKey.includes("soft") && (intel.skills.softSkills === null || attempt.percentage > (intel.skills.softSkills ?? 0))) {
+        intel.skills.softSkills = attempt.percentage;
+      }
+    }
+
     this.syncStudentActivity(this.studentActivityEvents[0]);
     this.syncAssessmentAttempt(attempt);
 
