@@ -117,11 +117,16 @@ export function ContributionHeatmap({
                           aria-label={`${day.count} verified activities on ${day.date}`}
                         />
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="text-xs font-mono py-1 px-2">
-                        <span className="font-semibold text-foreground">
+                      <TooltipContent
+                        side="top"
+                        className="text-xs font-mono py-1.5 px-3 bg-white text-neutral-900 border border-neutral-200/90 shadow-md rounded-md"
+                      >
+                        <span className="font-semibold text-neutral-950">
                           {day.count === 0 ? "No" : day.count} contribution{day.count === 1 ? "" : "s"}
                         </span>
-                        <span className="text-muted-foreground ml-1.5">on {format(parseISO(day.date), "MMM d, yyyy")}</span>
+                        <span className="text-neutral-600 font-medium ml-1.5">
+                          on {format(parseISO(day.date), "MMM d, yyyy")}
+                        </span>
                       </TooltipContent>
                     </Tooltip>
                   ))}
