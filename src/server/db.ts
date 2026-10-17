@@ -7865,6 +7865,26 @@ class DatabaseStore {
       reason: mandatoryReason.trim(),
       correctedAt: new Date().toISOString(),
     };
+
+    // Synchronize user login identity
+    const userMatch = this.users.find(
+      (u) => u.id === student.id || u.loginId.toLowerCase() === previousUsn.toLowerCase()
+    );
+    if (userMatch) {
+      userMatch.loginId = student.usn;
+    }
+
+    // Synchronize intelligence profile
+    if (this.studentIntelligence[student.id]) {
+      this.studentIntelligence[student.id].usn = student.usn;
+    }
+
+    // Migrate password key so student can immediately log in with updated USN
+    const existingPwd = this.getUserPassword(previousUsn) || this.getUserPassword(student.id);
+    if (existingPwd) {
+      this.setUserPassword(student.usn, existingPwd);
+    }
+
     this.addAuditLog({
       actor: actorLogin,
       action: "student.usn_correction",
