@@ -11441,73 +11441,99 @@ class DatabaseStore {
 
   public getStudentActionPlans(userContext: AuthenticatedUser) {
     const student = this.resolveStudent(userContext);
-    return this.actionPlans
-      .filter((ap) => ap.collegeCode === student.collegeCode && (!ap.studentId || ap.studentId === student.id))
-      .map((ap) => {
-        const rawTasks = [
-          {
-            id: `${ap.id}-t1`,
-            title: "Review Foundational Theory & Concepts",
-            description: "Study key algorithmic complexity models, state transitions, and edge cases.",
-            actionType: "learning",
-            actionUrl: "/student/learning",
-            actionText: "Study Lesson",
-            defaultCompleted: true,
-          },
-          {
-            id: `${ap.id}-t2`,
-            title: "Solve Practice Problems on Judge",
-            description: "Implement and execute test-verified optimal solutions in Java, Python, or C++.",
-            actionType: "judge",
-            actionUrl: "/student/judge",
-            actionText: "Open Judge",
-            defaultCompleted: false,
-          },
-          {
-            id: `${ap.id}-t3`,
-            title: "Submit Code Verification & Peer Evidence",
-            description: "Synchronize solutions with GitHub and verify test suite benchmarks.",
-            actionType: "evidence",
-            actionUrl: "/student/m/github",
-            actionText: "GitHub Sync",
-            defaultCompleted: false,
-          },
-        ];
+    let plans = this.actionPlans.filter(
+      (ap) => ap.collegeCode === student.collegeCode && (!ap.studentId || ap.studentId === student.id)
+    );
+    if (!plans.length) {
+      plans = this.actionPlans.filter((ap) => ap.collegeCode === student.collegeCode).slice(0, 3);
+    }
+    // If only one plan matched, also include act-2 and act-10 so the student has multiple tracks with varying statuses
+    if (plans.length === 1 && this.actionPlans.length > 1) {
+      const extra = this.actionPlans.filter((ap) => ap.id !== plans[0].id).slice(0, 2);
+      plans = [...plans, ...extra];
+    }
 
-        const tasks = rawTasks.map((t) => {
-          const isDone =
-            t.defaultCompleted ||
-            this.completedStudentMilestones.has(`${student.id}:${ap.id}:${t.id}`) ||
-            this.completedStudentMilestones.has(`${student.id}:${ap.id}:m-1`);
-          return {
-            id: t.id,
-            title: t.title,
-            description: t.description,
-            actionType: t.actionType,
-            actionUrl: t.actionUrl,
-            actionText: t.actionText,
-            completed: isDone,
-          };
-        });
+    return plans.map((ap) => {
+      const isAct2 = ap.id === "act-2";
+      const isAct10 = ap.id === "act-10";
 
-        const completedTasksCount = tasks.filter((t) => t.completed).length;
-        const allCompleted = completedTasksCount === tasks.length;
+      const rawTasks = [
+        {
+          id: `${ap.id}-t1`,
+          title: isAct2
+            ? "Review Recursion Trees & Memoization Tables"
+            : isAct10
+            ? "Review Logic Gates & C Memory Pointers"
+            : "Review Foundational Theory & Concepts",
+          description: isAct2
+            ? "Understand memoization vs tabulation and optimal substructure in DP state graphs."
+            : isAct10
+            ? "Study bitwise operations, memory layout, and stack pointer frames in C."
+            : "Study key algorithmic complexity models, state transitions, and edge cases.",
+          actionType: "learning",
+          actionUrl: "/student/learning",
+          actionText: "Study Lesson",
+        },
+        {
+          id: `${ap.id}-t2`,
+          title: isAct2
+            ? "Solve Knapsack & LCS Problems on Coding Judge"
+            : isAct10
+            ? "Solve Pointer Manipulation & Bitwise Problems on Judge"
+            : "Solve Practice Problems on Judge",
+          description: isAct2
+            ? "Submit accepted solutions for 0/1 Knapsack and Longest Common Subsequence."
+            : isAct10
+            ? "Implement array reversal using raw pointers and bit masking."
+            : "Implement and execute test-verified optimal solutions in Java, Python, or C++.",
+          actionType: "judge",
+          actionUrl: "/student/judge",
+          actionText: "Open Judge",
+        },
+        {
+          id: `${ap.id}-t3`,
+          title: "Submit Code Verification & Peer Evidence",
+          description: "Synchronize solutions with personal GitHub repository and verify automated test benchmarks.",
+          actionType: "evidence",
+          actionUrl: "/student/m/github",
+          actionText: "GitHub Sync",
+        },
+      ];
 
+      const tasks = rawTasks.map((t, idx) => {
+        const isDone =
+          this.completedStudentMilestones.has(`${student.id}:${ap.id}:${t.id}`) ||
+          this.completedStudentMilestones.has(`${student.id}:${ap.id}:m-1`) ||
+          (ap.id === "act-1" && idx === 0 && !this.completedStudentMilestones.has(`${student.id}:${ap.id}:t1:reopened`));
         return {
-          id: ap.id,
-          title: (ap as any).title || ap.description || "Remediation Action Plan",
-          description: ap.description,
-          status: allCompleted ? "Completed" : ap.status || "In Progress",
-          priority: ap.isOverdue ? "High" : (ap as any).priority || "High",
-          deadline: ap.deadline,
-          isOverdue: ap.isOverdue,
-          domain: (ap as any).domain || (ap.id === "act-1" ? "Data Structures & Algorithms" : ap.id === "act-2" ? "Dynamic Programming" : "Computer Science Core"),
-          tasksCount: tasks.length,
-          completedTasksCount,
-          assignedBy: ap.trainerName || (ap as any).createdBy || "Faculty Mentor (Rohan Verma)",
-          tasks,
+          id: t.id,
+          title: t.title,
+          description: t.description,
+          actionType: t.actionType,
+          actionUrl: t.actionUrl,
+          actionText: t.actionText,
+          completed: isDone,
         };
       });
+
+      const completedTasksCount = tasks.filter((t) => t.completed).length;
+      const allCompleted = completedTasksCount === tasks.length;
+
+      return {
+        id: ap.id,
+        title: (ap as any).title || ap.description || "Remediation Action Plan",
+        description: ap.description,
+        status: allCompleted ? "Completed" : ap.status || "In Progress",
+        priority: ap.isOverdue ? "High" : (ap as any).priority || (isAct2 ? "High" : isAct10 ? "Medium" : "High"),
+        deadline: ap.deadline,
+        isOverdue: ap.isOverdue,
+        domain: (ap as any).domain || (ap.id === "act-1" ? "Data Structures & Algorithms" : ap.id === "act-2" ? "Dynamic Programming" : "Computer Systems & Hardware"),
+        tasksCount: tasks.length,
+        completedTasksCount,
+        assignedBy: ap.trainerName || (ap as any).createdBy || "Faculty Mentor (Rohan Verma)",
+        tasks,
+      };
+    });
   }
 
   public completeStudentActionPlanMilestone(
@@ -11520,7 +11546,17 @@ class DatabaseStore {
     const plan = this.actionPlans.find((ap) => ap.id === planId);
     if (!plan) throw new Error("Action plan not found.");
 
-    this.completedStudentMilestones.add(`${student.id}:${planId}:${milestoneId}`);
+    const key = `${student.id}:${planId}:${milestoneId}`;
+    const isReopen = evidence.toLowerCase().includes("re-open") || evidence.toLowerCase().includes("reopen");
+    let isCompleted = true;
+    if (isReopen) {
+      this.completedStudentMilestones.delete(key);
+      this.completedStudentMilestones.add(`${student.id}:${planId}:t1:reopened`);
+      isCompleted = false;
+    } else {
+      this.completedStudentMilestones.add(key);
+      this.completedStudentMilestones.delete(`${student.id}:${planId}:t1:reopened`);
+    }
 
     const event: StudentActivityEventRecord = {
       id: `act-ev-${Date.now()}`,
@@ -11528,14 +11564,14 @@ class DatabaseStore {
       collegeId: student.collegeCode,
       activityType: "action_plan_milestone",
       title: `Action Plan Progress: ${(plan as any).title || plan.description || "Action Plan"}`,
-      description: `Completed milestone: ${milestoneId}. Evidence: ${evidence.slice(0, 50)}...`,
+      description: `${isCompleted ? "Completed" : "Reopened"} milestone: ${milestoneId}. Evidence: ${evidence.slice(0, 50)}...`,
       referenceId: plan.id,
-      metadata: { planId, milestoneId },
+      metadata: { planId, milestoneId, isCompleted },
       createdAt: new Date().toISOString(),
     };
     this.studentActivityEvents.unshift(event);
 
-    return { success: true, planId, milestoneId, completedAt: event.createdAt };
+    return { success: true, planId, milestoneId, isCompleted, completedAt: event.createdAt };
   }
 
   public getStudentGitHubStatus(userContext: AuthenticatedUser) {
