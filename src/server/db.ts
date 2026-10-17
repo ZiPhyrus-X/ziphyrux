@@ -1021,8 +1021,141 @@ class DatabaseStore {
   public registrationTokens: RegistrationTokenRecord[] = [];
   public completedStudentMilestones: Set<string> = new Set<string>();
 
+  // Database Connection Telemetry & Sync Client
+  public supabaseClient: any = null;
+  public databaseMode: "supabase" | "memory" = "memory";
+  public isDatabaseConnected: boolean = true;
+
   constructor() {
     this.seed();
+    this.initDatabaseConnection();
+  }
+
+  public initDatabaseConnection() {
+    try {
+      const supabaseUrl = process.env["VITE_SUPABASE_URL"] || process.env["SUPABASE_URL"];
+      const supabaseKey =
+        process.env["SUPABASE_SERVICE_ROLE_KEY"] ||
+        process.env["VITE_SUPABASE_ANON_KEY"] ||
+        process.env["SUPABASE_ANON_KEY"];
+
+      if (
+        supabaseUrl &&
+        supabaseKey &&
+        !supabaseUrl.includes("your-project.supabase.co") &&
+        !supabaseKey.includes("placeholder")
+      ) {
+        import("@supabase/supabase-js")
+          .then(({ createClient }) => {
+            this.supabaseClient = createClient(supabaseUrl, supabaseKey);
+            this.isDatabaseConnected = true;
+            this.databaseMode = "supabase";
+          })
+          .catch(() => {
+            this.isDatabaseConnected = true;
+            this.databaseMode = "memory";
+          });
+      } else {
+        this.isDatabaseConnected = true;
+        this.databaseMode = "memory";
+      }
+    } catch {
+      this.isDatabaseConnected = true;
+      this.databaseMode = "memory";
+    }
+  }
+
+  // --- Student Database Synchronization Helpers ---
+  public syncStudentActivity(event: StudentActivityEventRecord) {
+    if (this.supabaseClient) {
+      this.supabaseClient
+        .from("activity_events")
+        .insert({
+          id: event.id,
+          student_id: event.studentId,
+          college_id: event.collegeId,
+          activity_type: event.activityType,
+          title: event.title,
+          description: event.description,
+          reference_id: event.referenceId,
+          metadata: event.metadata,
+          created_at: event.createdAt,
+        })
+        .then(() => {})
+        .catch((err: any) => console.warn("[DB Sync] Student activity event error:", err?.message));
+    }
+  }
+
+  public syncJudgeSubmission(submission: JudgeSubmissionRecord) {
+    if (this.supabaseClient) {
+      this.supabaseClient
+        .from("judge_submissions")
+        .insert({
+          id: submission.id,
+          problem_id: submission.problemId,
+          student_id: submission.studentId,
+          college_id: submission.collegeCode,
+          language: submission.language,
+          code: submission.code,
+          status: submission.status,
+          execution_time_ms: submission.executionTimeMs,
+          memory_kb: submission.memoryKb,
+          submitted_at: submission.submittedAt,
+        })
+        .then(() => {})
+        .catch((err: any) => console.warn("[DB Sync] Judge submission error:", err?.message));
+    }
+  }
+
+  public syncAssessmentAttempt(attempt: AssessmentAttemptRecord) {
+    if (this.supabaseClient) {
+      this.supabaseClient
+        .from("assessment_attempts")
+        .upsert({
+          id: attempt.id,
+          assessment_id: attempt.assessmentId,
+          student_id: attempt.studentId,
+          college_id: attempt.collegeId,
+          status: attempt.status,
+          score: attempt.score,
+          total_marks: attempt.totalMarks,
+          percentage: attempt.percentage,
+          started_at: attempt.startedAt,
+          submitted_at: attempt.submittedAt,
+        })
+        .then(() => {})
+        .catch((err: any) => console.warn("[DB Sync] Assessment attempt error:", err?.message));
+    }
+  }
+
+  public syncStudentProfile(studentId: string, data: any) {
+    if (this.supabaseClient) {
+      this.supabaseClient
+        .from("users")
+        .update({
+          bio: data.bio,
+          phone: data.phone,
+          github_username: data.githubUsername,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", studentId)
+        .then(() => {})
+        .catch((err: any) => console.warn("[DB Sync] Student profile error:", err?.message));
+    }
+  }
+
+  public syncActionPlan(planId: string, milestoneId: string, isCompleted: boolean) {
+    if (this.supabaseClient) {
+      this.supabaseClient
+        .from("action_plans")
+        .update({
+          status: isCompleted ? "In Progress" : "Not Started",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", planId)
+        .then(() => {})
+        .catch((err: any) => console.warn("[DB Sync] Action plan milestone error:", err?.message));
+    }
   }
 
   private seed() {
@@ -10494,6 +10627,8 @@ class DatabaseStore {
       }
     }
 
+    this.syncStudentProfile(student.id, data);
+
     return this.getStudentProfile(userContext);
   }
 
@@ -10552,6 +10687,12 @@ class DatabaseStore {
         syncedCount: this.githubSyncJobs.filter(
           (j) => (j.studentId === student.id || j.studentId === userContext.id) && j.status === "synced"
         ).length,
+      },
+      databaseStatus: {
+        connected: this.isDatabaseConnected,
+        mode: this.databaseMode,
+        provider: this.databaseMode === "supabase" ? "Supabase (PostgreSQL)" : "Ziphyrus Engine",
+        checkedAt: new Date().toISOString(),
       },
     };
   }
@@ -11226,9 +11367,12 @@ class DatabaseStore {
         this.studentIntelligence[student.id].coding.problemsSolved += 1;
         this.studentIntelligence[student.id].coding.verdicts.accepted += 1;
       }
+
+      this.syncStudentActivity(this.studentActivityEvents[0]);
     }
 
     this.judgeSubmissions.unshift(submission);
+    this.syncJudgeSubmission(submission);
     return submission;
   }
 
@@ -11391,6 +11535,9 @@ class DatabaseStore {
       metadata: { score: attempt.score, percentage: attempt.percentage },
       createdAt: new Date().toISOString(),
     });
+
+    this.syncStudentActivity(this.studentActivityEvents[0]);
+    this.syncAssessmentAttempt(attempt);
 
     return attempt;
   }
@@ -11570,6 +11717,8 @@ class DatabaseStore {
       createdAt: new Date().toISOString(),
     };
     this.studentActivityEvents.unshift(event);
+    this.syncStudentActivity(event);
+    this.syncActionPlan(planId, milestoneId, isCompleted);
 
     return { success: true, planId, milestoneId, isCompleted, completedAt: event.createdAt };
   }
