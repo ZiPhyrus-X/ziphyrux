@@ -413,6 +413,12 @@ function StudentJudgePage() {
   const [terminalMaximized, setTerminalMaximized] = useState(false);
   const [terminalWordWrap, setTerminalWordWrap] = useState(true);
 
+  // Custom Input State
+  const [customInput, setCustomInput] = useState<string>("");
+  const [isCustomCaseActive, setIsCustomCaseActive] = useState(false);
+  const [customResult, setCustomResult] = useState<any>(null);
+  const [runningCustom, setRunningCustom] = useState(false);
+
   // Collapsible metadata
   const [showTopics, setShowTopics] = useState(false);
   const [showCompanies, setShowCompanies] = useState(false);
@@ -549,6 +555,11 @@ function StudentJudgePage() {
         setDraftSaved(true);
         setActiveBottomTab("result");
         setActiveCaseIndex(0);
+        setIsCustomCaseActive(false);
+        setCustomResult(null);
+        if (currentProblem.testCases?.[0]?.input) {
+          setCustomInput(currentProblem.testCases[0].input);
+        }
       } catch (err) {
         console.error("Error loading problem details:", err);
       }
@@ -1027,6 +1038,51 @@ function StudentJudgePage() {
     }
   };
 
+  // Run Custom Testcase Input
+  const handleRunCustom = async (overrideInput?: string) => {
+    if (!currentProblem) return;
+    const inputToUse =
+      (overrideInput ?? customInput).trim() ||
+      currentProblem.testCases?.[0]?.input ||
+      "nums = [2,7,11,15], target = 9";
+    setRunningCustom(true);
+    setRunning(true);
+    setBottomConsoleExpanded(true);
+    try {
+      const res = await api.student.judge.runCustom(currentProblem.id, language, code, inputToUse);
+      setCustomResult(res);
+      setSampleResult({
+        ...res,
+        totalSampleCases: 1,
+        passedSampleCases: res.passed ? 1 : 0,
+        results: [
+          {
+            testCaseId: "custom",
+            orderIndex: 1,
+            input: res.customInput,
+            expectedOutput: res.expectedOutput,
+            actualOutput: res.actualOutput,
+            passed: res.passed,
+            executionTimeMs: res.executionTimeMs,
+            memoryUsedMb: res.memoryUsedMb,
+          },
+        ],
+      });
+      if (res.status === "sample_passed") {
+        toast.success("Custom test case passed! ✓");
+      } else if (res.status === "compile_error") {
+        toast.error("Compilation / runtime error on custom testcase");
+      } else {
+        toast.error("Custom test case failed (Wrong Output)");
+      }
+    } catch {
+      toast.error("Execution error while evaluating custom input.");
+    } finally {
+      setRunningCustom(false);
+      setRunning(false);
+    }
+  };
+
   // Terminal Copy & Clear Handlers
   const handleCopyTerminalOutput = () => {
     const textToCopy =
@@ -1046,6 +1102,7 @@ function StudentJudgePage() {
   const handleClearTerminal = () => {
     setSampleResult(null);
     setSubmissionResult(null);
+    setCustomResult(null);
     toast.info("Terminal output cleared.");
   };
 
@@ -1150,14 +1207,14 @@ function StudentJudgePage() {
             <span>{formattedTimer}</span>
           </button>
 
-          {/* Run & Submit Top Execution Buttons */}
-          <div className="flex items-center gap-1.5">
+          {/* Run, Custom & Submit Top Execution Buttons */}
+          <div className="flex items-center gap-1.5 font-sans">
             <Button
               size="sm"
               variant="outline"
               onClick={handleRunSample}
               disabled={running || submitting}
-              className="h-7 text-xs gap-1 border-border/80 bg-background/80 hover:bg-muted/60"
+              className="h-7 px-2.5 text-xs gap-1 border-border/80 bg-background/80 hover:bg-muted/60 font-sans font-normal"
             >
               <Play className="w-3 h-3 text-blue-500 fill-blue-500" />
               <span>{running ? "Running…" : "Run"}</span>
@@ -1165,9 +1222,25 @@ function StudentJudgePage() {
 
             <Button
               size="sm"
+              variant="outline"
+              onClick={() => {
+                setActiveBottomTab("testcase");
+                setIsCustomCaseActive(true);
+                setBottomConsoleExpanded(true);
+              }}
+              disabled={running || submitting}
+              className="h-7 px-2.5 text-xs gap-1 border-border/80 bg-background/80 hover:bg-muted/60 font-sans font-normal text-muted-foreground hover:text-foreground"
+              title="Open Custom Input Runner"
+            >
+              <Code2 className="w-3 h-3 text-cyan-400" />
+              <span className="hidden sm:inline">Custom</span>
+            </Button>
+
+            <Button
+              size="sm"
               onClick={handleSubmit}
               disabled={running || submitting}
-              className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-xs"
+              className="h-7 px-3 text-xs gap-1 bg-emerald-600 hover:bg-emerald-500 text-white font-sans font-normal shadow-none"
             >
               <Send className="w-3 h-3" />
               <span>{submitting ? "Evaluating…" : "Submit"}</span>
@@ -1990,15 +2063,15 @@ function StudentJudgePage() {
                 <div className="h-3 w-px bg-border/60" />
 
                 {/* Main Console Tabs */}
-                <div className="flex items-center gap-1 font-mono">
+                <div className="flex items-center gap-1 font-sans">
                   <button
                     type="button"
                     onClick={() => setActiveBottomTab("result")}
                     className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-all",
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-all font-sans",
                       activeBottomTab === "result"
-                        ? "bg-background text-foreground shadow-xs font-semibold border border-border/60"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                        ? "bg-background text-foreground shadow-xs font-medium border border-border/60"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
                     )}
                   >
                     <Terminal className="w-3.5 h-3.5 text-cyan-500" />
@@ -2017,18 +2090,21 @@ function StudentJudgePage() {
 
                   <button
                     type="button"
-                    onClick={() => setActiveBottomTab("testcase")}
+                    onClick={() => {
+                      setActiveBottomTab("testcase");
+                      setIsCustomCaseActive(false);
+                    }}
                     className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-all",
-                      activeBottomTab === "testcase"
-                        ? "bg-background text-foreground shadow-xs font-semibold border border-border/60"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-all font-sans",
+                      activeBottomTab === "testcase" && !isCustomCaseActive
+                        ? "bg-background text-foreground shadow-xs font-medium border border-border/60"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
                     )}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                     <span>Test Cases</span>
                     {sampleResult?.results && (
-                      <span className="text-[10px] px-1 py-0.2 rounded bg-muted text-muted-foreground">
+                      <span className="text-[10px] px-1 py-0.2 rounded bg-muted text-muted-foreground font-mono">
                         {sampleResult.passedSampleCases}/{sampleResult.totalSampleCases}
                       </span>
                     )}
@@ -2036,12 +2112,37 @@ function StudentJudgePage() {
 
                   <button
                     type="button"
+                    onClick={() => {
+                      setActiveBottomTab("testcase");
+                      setIsCustomCaseActive(true);
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-all font-sans",
+                      activeBottomTab === "testcase" && isCustomCaseActive
+                        ? "bg-background text-foreground shadow-xs font-medium border border-border/60"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
+                    )}
+                  >
+                    <Code2 className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Custom Input</span>
+                    {customResult && (
+                      <span
+                        className={cn(
+                          "w-1.5 h-1.5 rounded-full",
+                          customResult.passed ? "bg-emerald-500" : "bg-rose-500"
+                        )}
+                      />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => setActiveBottomTab("telemetry")}
                     className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-all",
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-all font-sans",
                       activeBottomTab === "telemetry"
-                        ? "bg-background text-foreground shadow-xs font-semibold border border-border/60"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                        ? "bg-background text-foreground shadow-xs font-medium border border-border/60"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
                     )}
                   >
                     <Activity className="w-3.5 h-3.5 text-amber-500" />
@@ -2054,7 +2155,7 @@ function StudentJudgePage() {
               </div>
 
               {/* Right Side Quick Actions & Telemetry Indicator */}
-              <div className="flex items-center gap-1 font-mono">
+              <div className="flex items-center gap-1 font-sans">
                 {/* Live Sandbox Status Indicator */}
                 <div className="hidden sm:flex items-center gap-1.5 mr-1.5 px-2 py-0.5 rounded-full bg-muted/40 border border-border/40 text-[10px] text-muted-foreground">
                   <span
@@ -2282,21 +2383,34 @@ function StudentJudgePage() {
                             <Button
                               size="sm"
                               onClick={handleRunSample}
-                              className="h-7 px-3 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-mono shadow-md font-semibold"
+                              className="h-7 px-3 text-xs gap-1.5 bg-emerald-600/90 hover:bg-emerald-600 text-white font-sans font-normal rounded transition-all shadow-none"
                             >
-                              <Play className="w-3.5 h-3.5 fill-white" />
-                              <span>Run Sample Tests</span>
-                              <span className="text-[10px] opacity-75">(Ctrl+')</span>
+                              <Play className="w-3 h-3 fill-white" />
+                              <span className="font-sans font-normal">Run Sample Tests</span>
+                              <span className="text-[10px] opacity-60 font-sans font-light tracking-tight">(Ctrl+')</span>
                             </Button>
 
                             <Button
                               size="sm"
                               onClick={handleSubmit}
-                              className="h-7 px-3 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-mono shadow-md font-semibold"
+                              className="h-7 px-3 text-xs gap-1.5 bg-primary/90 hover:bg-primary text-primary-foreground font-sans font-normal rounded transition-all shadow-none"
                             >
-                              <Send className="w-3.5 h-3.5" />
-                              <span>Submit to Matrix</span>
-                              <span className="text-[10px] opacity-75">(Ctrl+Enter)</span>
+                              <Send className="w-3 h-3" />
+                              <span className="font-sans font-normal">Submit to Matrix</span>
+                              <span className="text-[10px] opacity-60 font-sans font-light tracking-tight">(Ctrl+Enter)</span>
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setActiveBottomTab("testcase");
+                                setIsCustomCaseActive(true);
+                              }}
+                              className="h-7 px-2.5 text-xs gap-1.5 border-border/70 hover:bg-muted/40 text-muted-foreground hover:text-foreground font-sans font-normal rounded transition-all shadow-none"
+                            >
+                              <Code2 className="w-3.5 h-3.5 text-cyan-400" />
+                              <span className="font-sans font-normal">Custom Input</span>
                             </Button>
                           </div>
 
@@ -2423,6 +2537,113 @@ function StudentJudgePage() {
                       )}
                     </div>
 
+                    {/* Interactive Custom Input Option in Terminal */}
+                    <div className="rounded-lg bg-[#080d19] border border-[#1b253b] p-2.5 space-y-2 select-text">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5 font-sans text-muted-foreground">
+                          <Code2 className="w-3.5 h-3.5 text-cyan-400" />
+                          <span className="text-foreground font-medium text-xs">Custom Input Option</span>
+                          <span className="text-slate-400 text-[11px] hidden sm:inline">— run custom stdin through matrix sandbox</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground mr-1 hidden sm:inline">Presets:</span>
+                          {(currentProblem?.testCases || []).slice(0, 3).map((tc, idx) => (
+                            <button
+                              key={tc.id || idx}
+                              type="button"
+                              onClick={() => {
+                                setCustomInput(tc.input);
+                                toast.info(`Loaded preset Case ${idx + 1}`);
+                              }}
+                              className="px-2 py-0.5 rounded text-[10px] font-mono bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/40 transition-colors"
+                            >
+                              Case {idx + 1}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-cyan-400 font-mono text-xs select-none">
+                            ❯
+                          </span>
+                          <Input
+                            value={customInput}
+                            onChange={(e) => setCustomInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleRunCustom();
+                              }
+                            }}
+                            placeholder="e.g. nums = [2,7,11,15], target = 9"
+                            className="pl-7 h-8 text-xs font-mono bg-[#040711] border-slate-800 text-slate-200 placeholder:text-slate-500 focus-visible:ring-1 focus-visible:ring-cyan-500/50"
+                          />
+                        </div>
+
+                        <Button
+                          size="sm"
+                          onClick={() => handleRunCustom()}
+                          disabled={runningCustom || running}
+                          className="h-8 px-3 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-sans font-normal shrink-0 rounded transition-all shadow-none"
+                        >
+                          <Play className="w-3 h-3 fill-white" />
+                          <span>{runningCustom ? "Running…" : "Run Custom Input"}</span>
+                        </Button>
+                      </div>
+
+                      {customResult && (
+                        <div
+                          className={cn(
+                            "p-2 rounded border text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 transition-all",
+                            customResult.passed
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                              : customResult.status === "compile_error"
+                              ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                              : "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            {customResult.passed ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            ) : customResult.status === "compile_error" ? (
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            ) : (
+                              <XCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                            )}
+                            <span className="font-semibold text-xs">
+                              {customResult.passed
+                                ? "Custom Case Passed"
+                                : customResult.status === "compile_error"
+                                ? "Compiler Error"
+                                : "Wrong Answer (Mismatch)"}
+                            </span>
+                            <span className="text-slate-400 text-[11px] truncate">
+                              | Output: <code className="text-slate-200 font-mono">{customResult.actualOutput}</code>
+                              {" "}| Expected: <code className="text-slate-200 font-mono">{customResult.expectedOutput}</code>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground shrink-0 font-sans">
+                            <span>⚡ {customResult.executionTimeMs} ms</span>
+                            <span>•</span>
+                            <span>🧠 {customResult.memoryUsedMb} MB</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveBottomTab("testcase");
+                                setIsCustomCaseActive(true);
+                              }}
+                              className="text-cyan-400 hover:underline ml-1"
+                            >
+                              Expand View ↗
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Sample Test Result Quick Cards */}
                     {sampleResult && sampleResult.results && sampleResult.results.length > 0 && (
                       <div className="space-y-1.5">
@@ -2542,82 +2763,267 @@ function StudentJudgePage() {
                   );
 
                   return (
-                    <div className="space-y-3 font-mono">
+                    <div className="space-y-3 font-sans">
                       {/* Case Pill Selector */}
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {problemTestCases.map((tc: any, idx: number) => {
                           const res = sampleResult?.results?.find((r: any) => r.orderIndex === (idx + 1));
+                          const isActive = !isCustomCaseActive && activeCaseIndex === idx;
                           return (
                             <button
                               key={idx}
                               type="button"
-                              onClick={() => setActiveCaseIndex(idx)}
+                              onClick={() => {
+                                setActiveCaseIndex(idx);
+                                setIsCustomCaseActive(false);
+                              }}
                               className={cn(
-                                "flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border",
-                                activeCaseIndex === idx
-                                  ? "bg-muted text-foreground border-border font-semibold shadow-xs"
-                                  : "bg-transparent text-muted-foreground border-transparent hover:bg-muted/40"
+                                "flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans",
+                                isActive
+                                  ? "bg-muted text-foreground border-border font-medium shadow-xs"
+                                  : "bg-transparent text-muted-foreground border-transparent hover:bg-muted/40 font-normal"
                               )}
                             >
                               {res && (
-                                <span className={cn("w-1.5 h-1.5 rounded-full", res.passed ? "bg-emerald-500" : "bg-rose-500")} />
+                                <span
+                                  className={cn(
+                                    "w-1.5 h-1.5 rounded-full",
+                                    res.passed ? "bg-emerald-500" : "bg-rose-500"
+                                  )}
+                                />
                               )}
                               <span>Case {idx + 1}</span>
                             </button>
                           );
                         })}
+
+                        {/* Custom Input Pill in the Selector */}
+                        <button
+                          type="button"
+                          onClick={() => setIsCustomCaseActive(true)}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans",
+                            isCustomCaseActive
+                              ? "bg-muted text-foreground border-border font-medium shadow-xs"
+                              : "bg-transparent text-muted-foreground border-dashed border-border/70 hover:bg-muted/40 font-normal"
+                          )}
+                        >
+                          <Code2 className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Custom Input</span>
+                          {customResult && (
+                            <span
+                              className={cn(
+                                "w-1.5 h-1.5 rounded-full",
+                                customResult.passed ? "bg-emerald-500" : "bg-rose-500"
+                              )}
+                            />
+                          )}
+                        </button>
                       </div>
 
-                      {/* Case Input & Output Inspector */}
-                      <div className="space-y-2.5">
-                        <div className="space-y-1">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
-                            Input
-                          </span>
-                          <div className="p-2.5 rounded bg-muted/40 border border-border/50 text-foreground font-mono text-xs overflow-x-auto select-all">
-                            {activeTestCase?.input}
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
-                            Expected Output
-                          </span>
-                          <div className="p-2.5 rounded bg-muted/40 border border-border/50 text-foreground font-mono text-xs overflow-x-auto select-all">
-                            {activeTestCase?.expectedOutput}
-                          </div>
-                        </div>
-
-                        {activeSampleResult && (
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-muted-foreground uppercase tracking-wider font-semibold">
-                                Actual Output
+                      {/* Content: Either Custom Input Sandbox OR Standard Case Inspector */}
+                      {isCustomCaseActive ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                                Custom Input Stdin
                               </span>
-                              <span
+                              <Badge variant="outline" className="text-[10px] text-cyan-400 border-cyan-500/30 font-mono py-0 px-1.5">
+                                live-eval
+                              </Badge>
+                            </div>
+
+                            {/* Quick Preset Fillers */}
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-muted-foreground mr-1 hidden sm:inline">Load Preset:</span>
+                              {problemTestCases.map((tc: any, idx: number) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => {
+                                    setCustomInput(tc.input);
+                                    toast.info(`Loaded preset Case ${idx + 1}`);
+                                  }}
+                                  className="px-2 py-0.5 rounded text-[10px] font-mono bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/40 transition-colors"
+                                >
+                                  Case {idx + 1}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Textarea for Custom Input */}
+                          <div className="space-y-2">
+                            <textarea
+                              value={customInput}
+                              onChange={(e) => setCustomInput(e.target.value)}
+                              rows={3}
+                              placeholder="Enter custom stdin string, e.g. nums = [2,7,11,15], target = 9"
+                              className="w-full p-2.5 rounded bg-muted/30 border border-border/60 text-foreground font-mono text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500/60 transition-colors resize-y min-h-[75px]"
+                            />
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleRunCustom()}
+                                  disabled={runningCustom || running}
+                                  className="h-7.5 px-3.5 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-sans font-normal rounded-md transition-all shadow-none"
+                                >
+                                  <Play className="w-3.5 h-3.5 fill-white" />
+                                  <span>{runningCustom ? "Evaluating on Matrix…" : "Run Custom Input"}</span>
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setCustomInput(problemTestCases[0]?.input || "");
+                                    toast.info("Reset custom input to default");
+                                  }}
+                                  className="h-7.5 px-2.5 text-xs gap-1 text-muted-foreground font-sans font-normal rounded-md border-border/60"
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                  <span>Reset</span>
+                                </Button>
+                              </div>
+
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                {customInput.length} chars
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Custom Input Output & Expected Ground Truth Breakdown */}
+                          {customResult && (
+                            <div className="space-y-2 pt-2 border-t border-border/50">
+                              <div className="flex items-center justify-between text-[11px]">
+                                <div className="flex items-center gap-2 font-medium">
+                                  <span>Verdict:</span>
+                                  <Badge
+                                    className={cn(
+                                      "text-[10px] font-normal px-2 py-0.5 border",
+                                      customResult.passed
+                                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                                        : customResult.status === "compile_error"
+                                        ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                                        : "bg-rose-500/10 text-rose-500 border-rose-500/30"
+                                    )}
+                                  >
+                                    {customResult.passed ? (
+                                      <span className="flex items-center gap-1">
+                                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                        <span>Match (Passed)</span>
+                                      </span>
+                                    ) : customResult.status === "compile_error" ? (
+                                      <span className="flex items-center gap-1">
+                                        <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                        <span>Compiler / Runtime Error</span>
+                                      </span>
+                                    ) : (
+                                      <span className="flex items-center gap-1">
+                                        <XCircle className="w-3 h-3 text-rose-500" />
+                                        <span>Mismatch (Wrong Answer)</span>
+                                      </span>
+                                    )}
+                                  </Badge>
+                                </div>
+
+                                <div className="flex items-center gap-3 text-muted-foreground font-mono text-[11px]">
+                                  <span>⏱ {customResult.executionTimeMs} ms</span>
+                                  <span>💾 {customResult.memoryUsedMb} MB</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveBottomTab("result")}
+                                    className="text-cyan-400 hover:underline font-sans text-[11px]"
+                                  >
+                                    View Terminal Stream &rarr;
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                                    Ground Truth Expected Output
+                                  </span>
+                                  <div className="p-2.5 rounded bg-muted/40 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-mono text-xs overflow-x-auto select-all">
+                                    {customResult.expectedOutput || "(none)"}
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                                    Your Solution Output
+                                  </span>
+                                  <div
+                                    className={cn(
+                                      "p-2.5 rounded border font-mono text-xs overflow-x-auto select-all",
+                                      customResult.passed
+                                        ? "bg-muted/40 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                                        : "bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400"
+                                    )}
+                                  >
+                                    {customResult.actualOutput || customResult.compileError || "(none)"}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* Case Input & Output Inspector */
+                        <div className="space-y-2.5">
+                          <div className="space-y-1">
+                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                              Input
+                            </span>
+                            <div className="p-2.5 rounded bg-muted/40 border border-border/50 text-foreground font-mono text-xs overflow-x-auto select-all">
+                              {activeTestCase?.input}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                              Expected Output
+                            </span>
+                            <div className="p-2.5 rounded bg-muted/40 border border-border/50 text-foreground font-mono text-xs overflow-x-auto select-all">
+                              {activeTestCase?.expectedOutput}
+                            </div>
+                          </div>
+
+                          {activeSampleResult && (
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-muted-foreground uppercase tracking-wider font-medium">
+                                  Actual Output
+                                </span>
+                                <span
+                                  className={cn(
+                                    "font-bold text-[10px] px-1.5 py-0.5 rounded border",
+                                    activeSampleResult.passed
+                                      ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/30"
+                                      : "text-rose-500 bg-rose-500/10 border-rose-500/30"
+                                  )}
+                                >
+                                  {activeSampleResult.passed ? "Match (Passed)" : "Mismatch (Wrong Answer)"}
+                                </span>
+                              </div>
+                              <div
                                 className={cn(
-                                  "font-bold text-[10px] px-1.5 py-0.5 rounded border",
+                                  "p-2.5 rounded border font-mono text-xs overflow-x-auto select-all",
                                   activeSampleResult.passed
-                                    ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/30"
-                                    : "text-rose-500 bg-rose-500/10 border-rose-500/30"
+                                    ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-rose-500/5 border-rose-500/30 text-rose-600 dark:text-rose-400"
                                 )}
                               >
-                                {activeSampleResult.passed ? "Match (Passed)" : "Mismatch (Wrong Answer)"}
-                              </span>
+                                {activeSampleResult.actualOutput}
+                              </div>
                             </div>
-                            <div
-                              className={cn(
-                                "p-2.5 rounded border font-mono text-xs overflow-x-auto select-all",
-                                activeSampleResult.passed
-                                  ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
-                                  : "bg-rose-500/5 border-rose-500/30 text-rose-600 dark:text-rose-400"
-                              )}
-                            >
-                              {activeSampleResult.actualOutput}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}

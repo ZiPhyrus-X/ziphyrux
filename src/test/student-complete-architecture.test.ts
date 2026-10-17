@@ -781,6 +781,145 @@ def twoSum(nums, target):
       expect(getLanguageFolderAndExt("javascript")).toEqual({ folder: "JavaScript", ext: "js" });
     });
   });
+
+  // =========================================================================
+  // 6. ONLINE JUDGE CUSTOM INPUT RUNNER & GROUND-TRUTH ENGINE
+  // =========================================================================
+  describe("6. Online Judge Custom Input Runner & Ground-Truth Verification", () => {
+    const twoSumValidCode = `
+import java.util.HashMap;
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        HashMap<Integer, Integer> map = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int comp = target - nums[i];
+            if (map.containsKey(comp)) return new int[] { map.get(comp), i };
+            map.put(nums[i], i);
+        }
+        return new int[0];
+    }
+}
+`;
+
+    it("evaluates custom input on Two Sum with dynamic ground-truth calculation", () => {
+      const result = db.runCustomJudgeTest(
+        "f0000000-0000-0000-0000-000000000001",
+        "java",
+        twoSumValidCode,
+        "nums = [1, 5, 8, 12], target = 13",
+        studentUser
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe("sample_passed");
+      expect(result.passed).toBe(true);
+      expect(result.expectedOutput).toBe("[1, 2]");
+      expect(result.actualOutput).toBe("[1, 2]");
+      expect(result.terminalOutput).toContain("$ run solution --custom-input");
+      expect(result.terminalOutput).toContain("✓ Custom Test Case Passed");
+    });
+
+    it("correctly flags wrong answer when custom input solution outputs mismatching output", () => {
+      const wrongCode = `
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        return new int[] { 0, 1 };
+    }
+}
+`;
+      const result = db.runCustomJudgeTest(
+        "f0000000-0000-0000-0000-000000000001",
+        "java",
+        wrongCode,
+        "nums = [1, 5, 8, 12], target = 13",
+        studentUser
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe("sample_failed");
+      expect(result.passed).toBe(false);
+      expect(result.expectedOutput).toBe("[1, 2]");
+      expect(result.actualOutput).toBe("[0, 1]");
+      expect(result.terminalOutput).toContain("✗ Custom Test Case Failed: Wrong Answer");
+    });
+
+    it("evaluates custom input on Balanced Brackets problem with stack validation", () => {
+      const bracketCode = `
+class Solution {
+    public boolean isValid(String s) {
+        java.util.Stack<Character> stack = new java.util.Stack<>();
+        for (char c : s.toCharArray()) {
+            if (c == '(' || c == '{' || c == '[') stack.push(c);
+            else if (stack.isEmpty()) return false;
+            else if (c == ')' && stack.pop() != '(') return false;
+            else if (c == '}' && stack.pop() != '{') return false;
+            else if (c == ']' && stack.pop() != '[') return false;
+        }
+        return stack.isEmpty();
+    }
+}
+`;
+      const validResult = db.runCustomJudgeTest(
+        "f0000000-0000-0000-0000-000000000003",
+        "java",
+        bracketCode,
+        's = "{[()]}"',
+        studentUser
+      );
+      expect(validResult.passed).toBe(true);
+      expect(validResult.expectedOutput).toBe("true");
+      expect(validResult.actualOutput).toBe("true");
+
+      const invalidResult = db.runCustomJudgeTest(
+        "f0000000-0000-0000-0000-000000000003",
+        "java",
+        bracketCode,
+        's = "([)]"',
+        studentUser
+      );
+      expect(invalidResult.passed).toBe(true);
+      expect(invalidResult.expectedOutput).toBe("false");
+      expect(invalidResult.actualOutput).toBe("false");
+    });
+
+    it("handles syntax and compiler errors accurately during custom input runs", () => {
+      const brokenSyntaxCode = `
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        syntax error broken
+`;
+      const result = db.runCustomJudgeTest(
+        "f0000000-0000-0000-0000-000000000001",
+        "java",
+        brokenSyntaxCode,
+        "nums = [2, 7, 11, 15], target = 9",
+        studentUser
+      );
+      expect(result.status).toBe("compile_error");
+      expect(result.passed).toBe(false);
+      expect(result.compileError).toBeDefined();
+    });
+
+    it("serves custom input via API route /api/v1/student/judge/problems/:id/run-custom", async () => {
+      const res = await api(
+        "/api/v1/student/judge/problems/f0000000-0000-0000-0000-000000000001/run-custom",
+        "POST",
+        {
+          language: "java",
+          sourceCode: twoSumValidCode,
+          customInput: "nums = [3, 2, 4], target = 6",
+        }
+      );
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.passed).toBe(true);
+      expect(json.data.expectedOutput).toBe("[1, 2]");
+      expect(json.data.actualOutput).toBe("[1, 2]");
+      expect(json.data.terminalOutput).toContain("$ run solution --custom-input");
+    });
+  });
 });
 
 

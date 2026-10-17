@@ -822,10 +822,15 @@ export const api = {
           method: "POST",
           body: JSON.stringify({ language, code }),
         }),
-      runSample: (problemId: string, language: string, sourceCode: string) =>
+      runSample: (problemId: string, language: string, sourceCode: string, customInput?: string) =>
         request<any>(`/api/v1/student/judge/problems/${problemId}/run`, {
           method: "POST",
-          body: JSON.stringify({ language, sourceCode }),
+          body: JSON.stringify({ language, sourceCode, customInput }),
+        }),
+      runCustom: (problemId: string, language: string, sourceCode: string, customInput: string) =>
+        request<any>(`/api/v1/student/judge/problems/${problemId}/run-custom`, {
+          method: "POST",
+          body: JSON.stringify({ language, sourceCode, customInput }),
         }),
       submit: (problemId: string, language: string, sourceCode: string) =>
         request<any>(`/api/v1/student/judge/problems/${problemId}/submit`, {

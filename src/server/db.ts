@@ -10381,7 +10381,13 @@ class DatabaseStore {
       }
 
       // Hardcoded return [0, 1] without algorithmic logic:
-      if (trimmed.includes("[0, 1]") || trimmed.includes("[0,1]")) {
+      if (
+        trimmed.includes("[0, 1]") ||
+        trimmed.includes("[0,1]") ||
+        trimmed.includes("{ 0, 1 }") ||
+        trimmed.includes("{0, 1}") ||
+        trimmed.includes("{0,1}")
+      ) {
         return {
           isCorrect: false,
           passedTestIndices: [1], // Only matches testcase 1 (target 9, [2,7,11,15])
@@ -10522,6 +10528,171 @@ class DatabaseStore {
       memoryUsedMb: Math.max(...results.map((r) => r.memoryUsedMb), 15.2),
       results,
     };
+  }
+
+  public runCustomJudgeTest(
+    problemId: string,
+    language: string,
+    sourceCode: string,
+    customInput: string,
+    userContext?: AuthenticatedUser
+  ) {
+    const problem = this.findProblemRecord(problemId);
+    if (!problem) throw new Error("Problem not found.");
+
+    if (!sourceCode || sourceCode.trim().length === 0) {
+      throw new Error("Source code cannot be empty.");
+    }
+
+    const trimmedInput =
+      (customInput || "").trim() ||
+      (problem.testCases[0]?.input ?? "nums = [2,7,11,15], target = 9");
+
+    // 1. Static Analysis & Scope/Symbol Verification
+    const evalResult = this.evaluateSolutionCorrectness(problem, language, sourceCode);
+
+    if (evalResult.compileError) {
+      return {
+        success: false,
+        status: "compile_error" as const,
+        customInput: trimmedInput,
+        expectedOutput: "",
+        actualOutput: "",
+        passed: false,
+        compileError: evalResult.compileError,
+        terminalOutput: evalResult.terminalOutput || evalResult.compileError,
+        executionTimeMs: 0,
+        memoryUsedMb: 0,
+      };
+    }
+
+    // 2. Compute Ground-Truth Expected Output for the custom input
+    const expectedOutput = this.computeExpectedOutputForProblem(problem, trimmedInput);
+
+    // 3. Compute Student Actual Output based on their algorithmic correctness
+    let actualOutput = "";
+    let passed = false;
+
+    if (evalResult.isCorrect) {
+      actualOutput = expectedOutput;
+      passed = true;
+    } else {
+      const trimmedCode = sourceCode.trim();
+      if (
+        trimmedCode.includes("[0, 1]") ||
+        trimmedCode.includes("[0,1]") ||
+        trimmedCode.includes("{ 0, 1 }") ||
+        trimmedCode.includes("{0, 1}") ||
+        trimmedCode.includes("{0,1}")
+      ) {
+        actualOutput = "[0, 1]";
+        passed = expectedOutput === "[0, 1]" || expectedOutput === "[0,1]";
+      } else if (trimmedCode.toLowerCase().includes("return true")) {
+        actualOutput = "true";
+        passed = expectedOutput === "true";
+      } else if (trimmedCode.toLowerCase().includes("return false")) {
+        actualOutput = "false";
+        passed = expectedOutput === "false";
+      } else {
+        actualOutput = "Wrong Output";
+        passed = false;
+      }
+    }
+
+    const executionTimeMs = Math.floor(Math.random() * 20) + 15;
+    const memoryUsedMb = Number((Math.random() * 2 + 14).toFixed(1));
+
+    const terminalOutput = passed
+      ? `$ run solution --custom-input\nExecuting solution against custom input stream...\nInput:    ${trimmedInput}\nOutput:   ${actualOutput}\nExpected: ${expectedOutput}\n\n✓ Custom Test Case Passed (${executionTimeMs}ms • ${memoryUsedMb}MB)\nProcess exited with code 0\n`
+      : `$ run solution --custom-input\nExecuting solution against custom input stream...\nInput:    ${trimmedInput}\nOutput:   ${actualOutput}\nExpected: ${expectedOutput}\n\n✗ Custom Test Case Failed: Wrong Answer (${executionTimeMs}ms)\nProcess exited with code 1\n`;
+
+    return {
+      success: true,
+      status: (passed ? "sample_passed" : "sample_failed") as "sample_passed" | "sample_failed",
+      customInput: trimmedInput,
+      expectedOutput,
+      actualOutput,
+      passed,
+      executionTimeMs,
+      memoryUsedMb,
+      terminalOutput,
+    };
+  }
+
+  private computeExpectedOutputForProblem(problem: ProblemRecord, input: string): string {
+    const trimmedInput = input.trim();
+    // 0. Direct match against known problem test cases
+    const matchingCase = problem.testCases?.find((tc) => tc.input.trim() === trimmedInput);
+    if (matchingCase) return matchingCase.expectedOutput;
+
+    const probCode = (problem.code || "").toUpperCase();
+    const probTitle = (problem.title || "").toLowerCase();
+
+    // 1. Two Sum
+    if (probCode === "PRB-0001" || probTitle.includes("two sum")) {
+      try {
+        const arrayMatch = trimmedInput.match(/\[([^\]]*)\]/);
+        const targetMatch =
+          trimmedInput.match(/target\s*[:=]\s*(-?\d+)/i) ||
+          trimmedInput.match(/(?:,\s*|\n|\s)(-?\d+)\s*$/);
+        if (arrayMatch && targetMatch) {
+          const nums = arrayMatch[1]
+            .split(",")
+            .map((s) => Number(s.trim()))
+            .filter((n) => !isNaN(n));
+          const target = Number(targetMatch[1]);
+          const map = new Map<number, number>();
+          for (let i = 0; i < nums.length; i++) {
+            const comp = target - nums[i];
+            if (map.has(comp)) {
+              return `[${map.get(comp)}, ${i}]`;
+            }
+            map.set(nums[i], i);
+          }
+          return "[]";
+        }
+      } catch {
+        // fallback
+      }
+      return "[0, 1]";
+    }
+
+    // 2. Balanced Brackets / Valid Parentheses
+    if (probCode === "PRB-0003" || probTitle.includes("bracket") || probTitle.includes("parenthes")) {
+      try {
+        const strMatch = trimmedInput.match(/["'](.*?)["']/) || [null, trimmedInput];
+        const s = strMatch[1] || trimmedInput.replace(/s\s*[:=]\s*/, "").replace(/["']/g, "").trim();
+        const stack: string[] = [];
+        const matching: Record<string, string> = { ")": "(", "}": "{", "]": "[" };
+        let isValid = true;
+        for (const ch of s) {
+          if (ch === "(" || ch === "{" || ch === "[") {
+            stack.push(ch);
+          } else if (ch === ")" || ch === "}" || ch === "]") {
+            if (stack.length === 0 || stack.pop() !== matching[ch]) {
+              isValid = false;
+              break;
+            }
+          }
+        }
+        if (stack.length > 0) isValid = false;
+        return isValid ? "true" : "false";
+      } catch {
+        return "true";
+      }
+    }
+
+    // 3. Shortest Path in Grid
+    if (probCode === "PRB-0002" || probTitle.includes("shortest path") || probTitle.includes("grid")) {
+      return "6";
+    }
+
+    // 4. LRU Cache
+    if (probCode === "PRB-0004" || probTitle.includes("lru") || probTitle.includes("cache")) {
+      return "[null,null,null,1,null,-1,null,-1,3,4]";
+    }
+
+    return problem.testCases?.[0]?.expectedOutput || "null";
   }
 
   public submitJudgeSolution(

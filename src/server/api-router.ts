@@ -3300,11 +3300,28 @@ export async function handleApiRequest(request: Request): Promise<Response> {
     if (runMatch && method === "POST") {
       const problemId = runMatch[1];
       try {
-        const body = (await request.json()) as { language: string; sourceCode: string };
+        const body = (await request.json()) as { language: string; sourceCode: string; customInput?: string };
+        if (body.customInput !== undefined && body.customInput !== null && body.customInput.trim().length > 0) {
+          const result = db.runCustomJudgeTest(problemId, body.language || "python", body.sourceCode || "", body.customInput, user);
+          return jsonResponse({ success: true, data: result });
+        }
         const result = db.runSampleJudgeTests(problemId, body.language || "python", body.sourceCode || "", user);
         return jsonResponse({ success: true, data: result });
       } catch (e) {
         return errorResponse("execution_error", e instanceof Error ? e.message : "Error running sample tests", 400);
+      }
+    }
+
+    // Run Custom Testcase
+    const customMatch = path.match(/^\/api\/v1\/student\/judge\/problems\/([a-zA-Z0-9_-]+)\/run-custom$/);
+    if (customMatch && method === "POST") {
+      const problemId = customMatch[1];
+      try {
+        const body = (await request.json()) as { language: string; sourceCode: string; customInput: string };
+        const result = db.runCustomJudgeTest(problemId, body.language || "python", body.sourceCode || "", body.customInput || "", user);
+        return jsonResponse({ success: true, data: result });
+      } catch (e) {
+        return errorResponse("custom_execution_error", e instanceof Error ? e.message : "Error running custom test", 400);
       }
     }
 
