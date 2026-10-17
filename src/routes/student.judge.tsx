@@ -972,7 +972,6 @@ function StudentJudgePage() {
   const handleRunSample = async () => {
     if (!currentProblem) return;
     setRunning(true);
-    setBottomConsoleExpanded(true);
     setActiveBottomTab("result");
     setSampleResult(null);
     try {
@@ -994,7 +993,6 @@ function StudentJudgePage() {
   const handleSubmit = async () => {
     if (!currentProblem) return;
     setSubmitting(true);
-    setBottomConsoleExpanded(true);
     setActiveBottomTab("result");
     setSubmissionResult(null);
     try {
@@ -2130,20 +2128,7 @@ function StudentJudgePage() {
                                 line.includes("error:") ||
                                 line.includes("SyntaxError:") ||
                                 line.includes("NameError:") ||
-                                line.includes("ReferenceError:") ||
-                                line.includes("IndentationError:") ||
-                                line.includes("TypeError:") ||
-                                line.includes("ArithmeticException:") ||
-                                line.includes("ZeroDivisionError:") ||
-                                line.includes("NullPointerException:") ||
-                                line.includes("ArrayIndexOutOfBoundsException:") ||
-                                line.includes("IndexError:") ||
-                                line.includes("Floating point exception") ||
-                                line.includes("Time Limit Exceeded") ||
-                                line.includes("cannot find symbol") ||
-                                line.includes("missing return statement") ||
-                                line.includes("incompatible types") ||
-                                line.includes("Error:")
+                                line.includes("ReferenceError:")
                               ) {
                                 styleClass = "text-rose-400 font-bold bg-rose-500/15 px-1 rounded inline-block";
                               } else if (line.includes("^")) {
