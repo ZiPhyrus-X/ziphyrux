@@ -22,12 +22,6 @@ import {
   FileText,
   BookOpen,
   Lightbulb,
-  ThumbsUp,
-  ThumbsDown,
-  MessageSquare,
-  Star,
-  Share2,
-  HelpCircle,
   Maximize2,
   Minimize2,
   Settings,
@@ -61,8 +55,10 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
+import { authService } from "@/lib/auth/service";
 import { cn } from "@/lib/utils";
 import { highlightCode, highlightCodeLines } from "@/lib/syntax-highlighter";
+import { getProblemEditorial, getProblemSolutions } from "@/lib/problem-editorial";
 
 export const Route = createFileRoute("/student/judge")({
   head: () => ({
@@ -415,13 +411,10 @@ function StudentJudgePage() {
   const [showCompanies, setShowCompanies] = useState(false);
   const [showHints, setShowHints] = useState(false);
 
-  // Reaction State
-  const [liked, setLiked] = useState(false);
-  const [disliked, setDisliked] = useState(false);
-  const [starred, setStarred] = useState(false);
-  const [likesCount, setLikesCount] = useState(70724);
-
-  // Student Profile Info for GitHub sync pill
+  // Student Profile Info & Presence
+  const [studentName, setStudentName] = useState<string>(() => {
+    return authService.getSession()?.user?.name || "Student";
+  });
   const [targetRepo, setTargetRepo] = useState<string>("ZiphyrusX-Aarav-001");
 
   // Timer state
@@ -465,6 +458,9 @@ function StudentJudgePage() {
         if (probRes && probRes.length > 0 && !selectedProblemId) {
           setSelectedProblemId(probRes[0].id);
         }
+        if (profileRes?.name) {
+          setStudentName(profileRes.name);
+        }
         if (profileRes?.targetGitHubRepo) {
           setTargetRepo(profileRes.targetGitHubRepo);
         }
@@ -499,6 +495,12 @@ function StudentJudgePage() {
 
   const currentProblem = filteredProblems[currentProblemIndex] || filteredProblems[0] || null;
 
+  // Editorial & Verified Reference Solutions
+  const [selectedSolutionIndex, setSelectedSolutionIndex] = useState(0);
+  const [solutionCopied, setSolutionCopied] = useState(false);
+  const editorial = useMemo(() => getProblemEditorial(currentProblem), [currentProblem]);
+  const solutions = useMemo(() => getProblemSolutions(currentProblem), [currentProblem]);
+
   // Load problem details, drafts, and submissions when problem changes
   useEffect(() => {
     if (!currentProblem) return;
@@ -506,6 +508,7 @@ function StudentJudgePage() {
     async function loadProblemWorkspace() {
       try {
         const probId = currentProblem.id;
+        setSelectedSolutionIndex(0);
         const [draftRes, subRes] = await Promise.all([
           api.student.judge.getDraft(probId, language).catch(() => null),
           api.student.judge.submissions(probId).catch(() => []),
@@ -1450,48 +1453,173 @@ function StudentJudgePage() {
             {/* Editorial Tab Content */}
             {activeLeftTab === "editorial" && (
               <div className="space-y-4 animate-in fade-in duration-150">
-                <h3 className="text-base font-bold text-foreground">Algorithmic Solution Breakdown</h3>
-                <div className="p-3 rounded-lg bg-muted/20 border border-border/40 space-y-2">
-                  <h4 className="font-semibold text-foreground">Approach 1: Hash Map (Single Pass)</h4>
-                  <p className="text-muted-foreground">
-                    While we iterate and insert elements into the hash map, we also look back to check if current element&apos;s complement already exists in the table. If it exists, we have found a solution and return the indices immediately.
+                <div className="pb-1 border-b border-border/40">
+                  <h3 className="text-sm font-bold text-foreground">
+                    {editorial.problemTitle} — Editorial Breakdown
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    {editorial.overview}
                   </p>
-                  <div className="pt-2 flex items-center gap-4 text-[11px] font-mono text-muted-foreground">
-                    <span>Time: <strong>O(N)</strong></span>
-                    <span>•</span>
-                    <span>Space: <strong>O(N)</strong></span>
-                  </div>
                 </div>
+
+                {editorial.approaches.map((app, idx) => (
+                  <div key={idx} className="p-3.5 rounded-lg bg-muted/20 border border-border/50 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-semibold text-foreground">
+                        {app.title}
+                      </h4>
+                      {app.badge && (
+                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+                          {app.badge}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">
+                        Intuition
+                      </span>
+                      <p className="text-xs text-foreground/90 leading-relaxed">
+                        {app.intuition}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">
+                        Algorithm Steps
+                      </span>
+                      <ol className="list-decimal list-inside space-y-1 text-xs text-muted-foreground">
+                        {app.algorithm.map((step, sIdx) => (
+                          <li key={sIdx} className="leading-relaxed">
+                            <span className="text-foreground/90">{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+
+                    <div className="pt-2 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div className="p-2 rounded bg-background/60 border border-border/40">
+                        <div className="font-mono text-primary font-semibold text-[11px]">
+                          Time: {app.complexity.time}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {app.complexity.timeNotes}
+                        </div>
+                      </div>
+                      <div className="p-2 rounded bg-background/60 border border-border/40">
+                        <div className="font-mono text-amber-500 font-semibold text-[11px]">
+                          Space: {app.complexity.space}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {app.complexity.spaceNotes}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {editorial.edgeCases && editorial.edgeCases.length > 0 && (
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5">
+                    <span className="font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5 text-xs">
+                      <AlertTriangle className="w-3.5 h-3.5" /> Key Edge Cases to Watch
+                    </span>
+                    <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-[11px]">
+                      {editorial.edgeCases.map((ec, i) => (
+                        <li key={i}>{ec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Solutions Tab Content */}
             {activeLeftTab === "solutions" && (
-              <div className="space-y-4 animate-in fade-in duration-150">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-foreground">Verified Reference Solutions</h3>
-                  <Badge variant="outline" className="text-[10px] font-mono">Multi-language</Badge>
-                </div>
-                <div className="space-y-2">
-                  <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1.5 font-mono text-xs">
-                    <span className="text-primary font-semibold block">Java Solution (Hash Map)</span>
-                    <pre className="p-2 rounded bg-background border border-border/40 overflow-x-auto text-[11px]">
-{`class Solution {
-    public int[] twoSum(int[] nums, int target) {
-        Map<Integer, Integer> map = new HashMap<>();
-        for (int i = 0; i < nums.length; i++) {
-            int complement = target - nums[i];
-            if (map.containsKey(complement)) {
-                return new int[] { map.get(complement), i };
-            }
-            map.put(nums[i], i);
-        }
-        return new int[] {};
-    }
-}`}
-                    </pre>
+              <div className="space-y-3 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between pb-1 border-b border-border/40">
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">Verified Reference Solutions</h3>
+                    <p className="text-[11px] text-muted-foreground">Optimal implementations across supported languages</p>
                   </div>
+                  <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                    Verified Reference
+                  </Badge>
                 </div>
+
+                {/* Language Selection Pills */}
+                <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-lg bg-muted/30 border border-border/50">
+                  {solutions.map((sol, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedSolutionIndex(idx)}
+                      className={cn(
+                        "px-2.5 py-1 rounded text-xs font-mono font-medium transition-all",
+                        selectedSolutionIndex === idx
+                          ? "bg-background text-primary shadow-xs border border-border/60"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {sol.languageLabel}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Solution Box */}
+                {solutions[selectedSolutionIndex] && (() => {
+                  const sol = solutions[selectedSolutionIndex];
+                  return (
+                    <div className="rounded-lg border border-border/50 bg-muted/20 overflow-hidden">
+                      <div className="px-3 py-2 bg-muted/40 border-b border-border/40 flex items-center justify-between text-xs">
+                        <span className="font-semibold text-foreground flex items-center gap-2">
+                          <span className="text-primary font-mono">{sol.languageLabel}</span>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="text-muted-foreground font-sans text-[11px]">{sol.approachTitle}</span>
+                        </span>
+
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                              navigator.clipboard.writeText(sol.code);
+                              setSolutionCopied(true);
+                              setTimeout(() => setSolutionCopied(false), 2000);
+                              toast.success("Solution copied to clipboard");
+                            }}
+                          >
+                            {solutionCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                            <span>{solutionCopied ? "Copied" : "Copy"}</span>
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-[11px] gap-1 font-mono text-primary border-primary/30 hover:bg-primary/10"
+                            onClick={() => {
+                              setLanguage(sol.language);
+                              setCode(sol.code);
+                              const probId = currentProblem?.id || "default";
+                              if (!codeByLangRef.current[probId]) codeByLangRef.current[probId] = {};
+                              codeByLangRef.current[probId][sol.language] = sol.code;
+                              setStoredJudgeCode(probId, sol.language, sol.code);
+                              setIsDirty(true);
+                              setDraftSaved(false);
+                              toast.success(`Loaded ${sol.languageLabel} solution into editor!`);
+                            }}
+                          >
+                            <Code2 className="w-3 h-3" />
+                            <span>Load into Editor</span>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <pre className="p-3 bg-background/80 overflow-x-auto text-[11px] font-mono leading-relaxed text-foreground select-all max-h-[460px]">
+                        {sol.code}
+                      </pre>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -1571,88 +1699,12 @@ function StudentJudgePage() {
             )}
           </div>
 
-          {/* Bottom Reactions & Online Presence Toolbar (Matches Screenshot) */}
-          <div className="border-t border-border/60 bg-muted/20 px-3 py-2 flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setLiked(!liked);
-                  if (disliked) setDisliked(false);
-                  setLikesCount((prev) => (liked ? prev - 1 : prev + 1));
-                }}
-                className={cn(
-                  "flex items-center gap-1 hover:text-foreground transition-colors",
-                  liked && "text-blue-500"
-                )}
-              >
-                <ThumbsUp className="w-3.5 h-3.5" />
-                <span className="font-mono text-[11px]">{(likesCount / 1000).toFixed(1)}K</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setDisliked(!disliked);
-                  if (liked) {
-                    setLiked(false);
-                    setLikesCount((prev) => prev - 1);
-                  }
-                }}
-                className={cn(
-                  "hover:text-foreground transition-colors",
-                  disliked && "text-rose-500"
-                )}
-              >
-                <ThumbsDown className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => toast.info("Discussion thread opened.")}
-                className="flex items-center gap-1 hover:text-foreground transition-colors"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span className="font-mono text-[11px]">2.1K</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setStarred(!starred);
-                  toast.success(starred ? "Removed from starred" : "Saved to starred problems");
-                }}
-                className={cn("hover:text-foreground transition-colors", starred && "text-amber-500")}
-              >
-                <Star className={cn("w-3.5 h-3.5", starred && "fill-amber-500")} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  toast.success("Problem link copied to clipboard.");
-                }}
-                className="hover:text-foreground transition-colors"
-                title="Share Problem"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => toast.info("Feedback dialog.")}
-                className="hover:text-foreground transition-colors"
-                title="Help"
-              >
-                <HelpCircle className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-[11px] font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-muted-foreground font-medium">689 Online</span>
-            </div>
+          {/* Bottom Matrix Greeting Ribbon */}
+          <div className="border-t border-border/60 bg-muted/20 px-3 py-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span className="text-muted-foreground font-medium font-mono text-[11px] truncate">
+              Greetings {studentName}!, Ziphyrus-X welcome you to the Matrix.
+            </span>
           </div>
         </div>
 
