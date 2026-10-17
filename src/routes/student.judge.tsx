@@ -30,15 +30,10 @@ import {
   Timer,
   Lock,
   Sparkles,
+  ExternalLink,
   Flame,
   Copy,
   ListFilter,
-  Trash2,
-  TextWrap,
-  Cpu,
-  Layers,
-  Activity,
-  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -407,11 +402,9 @@ function StudentJudgePage() {
   const [submissionResult, setSubmissionResult] = useState<any>(null);
   const [submissionsList, setSubmissionsList] = useState<any[]>([]);
   const [activeLeftTab, setActiveLeftTab] = useState("description");
-  const [activeBottomTab, setActiveBottomTab] = useState<"testcase" | "result" | "telemetry">("result");
+  const [activeBottomTab, setActiveBottomTab] = useState<"testcase" | "result">("testcase");
   const [activeCaseIndex, setActiveCaseIndex] = useState(0);
   const [bottomConsoleExpanded, setBottomConsoleExpanded] = useState(true);
-  const [terminalMaximized, setTerminalMaximized] = useState(false);
-  const [terminalWordWrap, setTerminalWordWrap] = useState(true);
 
   // Collapsible metadata
   const [showTopics, setShowTopics] = useState(false);
@@ -547,7 +540,7 @@ function StudentJudgePage() {
         setSubmissionResult(null);
         setIsDirty(false);
         setDraftSaved(true);
-        setActiveBottomTab("result");
+        setActiveBottomTab("testcase");
         setActiveCaseIndex(0);
       } catch (err) {
         console.error("Error loading problem details:", err);
@@ -1722,7 +1715,7 @@ function StudentJudgePage() {
           {/* ---------------------------------------------------------------------- */}
           {/* TOP PANE: Code Editor                                                  */}
           {/* ---------------------------------------------------------------------- */}
-          <div className={cn("flex flex-col rounded-lg border border-border/70 bg-card/75 backdrop-blur-xl overflow-hidden shadow-xs min-h-0 transition-all duration-200", terminalMaximized ? "hidden" : bottomConsoleExpanded ? "flex-[3_3_0%]" : "flex-1")}>
+          <div className={cn("flex flex-col rounded-lg border border-border/70 bg-card/75 backdrop-blur-xl overflow-hidden shadow-xs min-h-0", bottomConsoleExpanded ? "flex-[3_3_0%]" : "flex-1")}>
             {/* Editor Top Toolbar: </> Code / Language / Auto / Action Icons */}
             <div className="shrink-0 border-b border-border/60 bg-muted/20 px-3 py-1 flex items-center justify-between text-xs">
               <div className="flex items-center gap-3">
@@ -1948,191 +1941,42 @@ function StudentJudgePage() {
           </div>
 
           {/* ---------------------------------------------------------------------- */}
-          {/* BOTTOM PANE: High-Tech Integrated Execution Terminal & Test Console     */}
+          {/* BOTTOM PANE: Testcase & Test Result Execution Console                  */}
           {/* ---------------------------------------------------------------------- */}
-          <div
-            className={cn(
-              "rounded-lg border border-border/70 bg-card/85 backdrop-blur-xl overflow-hidden shadow-sm flex flex-col min-h-0 transition-all duration-200",
-              terminalMaximized
-                ? "flex-1 h-full min-h-0"
-                : bottomConsoleExpanded
-                ? "flex-[2_2_0%] min-h-[190px]"
-                : "h-9 shrink-0"
-            )}
-          >
-            {/* Header: macOS Traffic Lights + Tab Navigation + Quick Actions */}
-            <div className="shrink-0 border-b border-border/60 bg-muted/30 px-3 py-1.5 flex items-center justify-between text-xs select-none">
-              <div className="flex items-center gap-3">
-                {/* macOS Terminal Traffic Light Controls */}
-                <div className="flex items-center gap-1.5">
-                  <span
-                    onClick={handleClearTerminal}
-                    title="Clear Terminal Output"
-                    className="w-2.5 h-2.5 rounded-full bg-[#ff5f56] hover:brightness-125 cursor-pointer transition-all shadow-[0_0_4px_rgba(255,95,86,0.5)]"
-                  />
-                  <span
-                    onClick={() => setBottomConsoleExpanded(!bottomConsoleExpanded)}
-                    title={bottomConsoleExpanded ? "Collapse Console" : "Expand Console"}
-                    className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e] hover:brightness-125 cursor-pointer transition-all shadow-[0_0_4px_rgba(255,189,46,0.5)]"
-                  />
-                  <span
-                    onClick={() => {
-                      if (!bottomConsoleExpanded) setBottomConsoleExpanded(true);
-                      setTerminalMaximized(!terminalMaximized);
-                    }}
-                    title={terminalMaximized ? "Restore Console Height" : "Maximize Terminal"}
-                    className="w-2.5 h-2.5 rounded-full bg-[#27c93f] hover:brightness-125 cursor-pointer transition-all shadow-[0_0_4px_rgba(39,201,63,0.5)]"
-                  />
-                </div>
+          <div className={cn("rounded-lg border border-border/70 bg-card/75 backdrop-blur-xl overflow-hidden shadow-xs flex flex-col min-h-0 transition-all duration-200", bottomConsoleExpanded ? "flex-[2_2_0%] min-h-[160px]" : "h-9 shrink-0")}>
+            {/* Header Tabs: ☑ Testcase | >_ Test Result */}
+            <div className="shrink-0 border-b border-border/60 bg-muted/20 px-3 py-1 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveBottomTab("testcase")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-colors",
+                    activeBottomTab === "testcase"
+                      ? "bg-background text-foreground shadow-xs font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Testcase</span>
+                </button>
 
-                <div className="h-3 w-px bg-border/60" />
-
-                {/* Main Console Tabs */}
-                <div className="flex items-center gap-1 font-mono">
-                  <button
-                    type="button"
-                    onClick={() => setActiveBottomTab("result")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-all",
-                      activeBottomTab === "result"
-                        ? "bg-background text-foreground shadow-xs font-semibold border border-border/60"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                    )}
-                  >
-                    <Terminal className="w-3.5 h-3.5 text-cyan-500" />
-                    <span>Terminal</span>
-                    {(sampleResult || submissionResult) && (
-                      <span
-                        className={cn(
-                          "w-1.5 h-1.5 rounded-full",
-                          submissionResult?.status === "accepted" || sampleResult?.status === "sample_passed"
-                            ? "bg-emerald-500 animate-pulse"
-                            : "bg-rose-500"
-                        )}
-                      />
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveBottomTab("testcase")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-all",
-                      activeBottomTab === "testcase"
-                        ? "bg-background text-foreground shadow-xs font-semibold border border-border/60"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                    )}
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>Test Cases</span>
-                    {sampleResult?.results && (
-                      <span className="text-[10px] px-1 py-0.2 rounded bg-muted text-muted-foreground">
-                        {sampleResult.passedSampleCases}/{sampleResult.totalSampleCases}
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveBottomTab("telemetry")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-all",
-                      activeBottomTab === "telemetry"
-                        ? "bg-background text-foreground shadow-xs font-semibold border border-border/60"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                    )}
-                  >
-                    <Activity className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Telemetry</span>
-                    {submissionResult?.githubSynced && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    )}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveBottomTab("result")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-colors",
+                    activeBottomTab === "result"
+                      ? "bg-background text-foreground shadow-xs font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Terminal className="w-3.5 h-3.5 text-primary" />
+                  <span>Test Result</span>
+                </button>
               </div>
 
-              {/* Right Side Quick Actions & Telemetry Indicator */}
-              <div className="flex items-center gap-1 font-mono">
-                {/* Live Sandbox Status Indicator */}
-                <div className="hidden sm:flex items-center gap-1.5 mr-1.5 px-2 py-0.5 rounded-full bg-muted/40 border border-border/40 text-[10px] text-muted-foreground">
-                  <span
-                    className={cn(
-                      "w-1.5 h-1.5 rounded-full",
-                      running || submitting
-                        ? "bg-amber-400 animate-ping"
-                        : sampleResult || submissionResult
-                        ? "bg-emerald-500"
-                        : "bg-slate-400"
-                    )}
-                  />
-                  <span>
-                    {running || submitting
-                      ? "evaluating"
-                      : sampleResult || submissionResult
-                      ? submissionResult?.status || sampleResult?.status || "ready"
-                      : "idle"}
-                  </span>
-                </div>
-
-                {/* Word Wrap Toggle */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setTerminalWordWrap(!terminalWordWrap)}
-                  className={cn(
-                    "h-6 w-6 text-muted-foreground hover:text-foreground",
-                    terminalWordWrap && "text-foreground bg-muted/50"
-                  )}
-                  title={terminalWordWrap ? "Disable Word Wrap" : "Enable Word Wrap"}
-                >
-                  <TextWrap className="w-3.5 h-3.5" />
-                </Button>
-
-                {/* Copy Terminal Output */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={handleCopyTerminalOutput}
-                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                  title="Copy Output"
-                >
-                  {terminalCopied ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                </Button>
-
-                {/* Clear Output */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={handleClearTerminal}
-                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                  title="Clear Terminal"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-
-                {/* Maximize / Restore Toggle */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => {
-                    if (!bottomConsoleExpanded) setBottomConsoleExpanded(true);
-                    setTerminalMaximized(!terminalMaximized);
-                  }}
-                  className="h-6 w-6 text-muted-foreground hover:text-foreground hidden sm:flex"
-                  title={terminalMaximized ? "Restore Height" : "Maximize Console"}
-                >
-                  {terminalMaximized ? (
-                    <Minimize2 className="w-3.5 h-3.5" />
-                  ) : (
-                    <Maximize2 className="w-3.5 h-3.5" />
-                  )}
-                </Button>
-
-                {/* Expand / Collapse Console */}
+              <div className="flex items-center gap-1">
                 <Button
                   size="icon"
                   variant="ghost"
@@ -2140,588 +1984,268 @@ function StudentJudgePage() {
                   className="h-6 w-6 text-muted-foreground hover:text-foreground"
                   title={bottomConsoleExpanded ? "Collapse Console" : "Expand Console"}
                 >
-                  {bottomConsoleExpanded ? (
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  ) : (
-                    <ChevronUp className="w-3.5 h-3.5" />
-                  )}
+                  {bottomConsoleExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
                 </Button>
               </div>
             </div>
 
             {/* Bottom Console Content */}
             {bottomConsoleExpanded && (
-              <div className="flex-1 min-h-0 overflow-y-auto p-2.5 bg-background/40 flex flex-col">
-                {/* ================================================================ */}
-                {/* TAB 1: INTEGRATED DEVELOPER TERMINAL (>_ Terminal)              */}
-                {/* ================================================================ */}
-                {activeBottomTab === "result" && (
-                  <div className="flex-1 flex flex-col space-y-2.5">
-                    {/* Terminal Glass Container */}
-                    <div className="rounded-lg bg-[#080c14] border border-[#182033] shadow-2xl overflow-hidden font-mono text-xs flex flex-col relative select-text">
-                      {/* Top Glowing Cyan Accent Sheen */}
-                      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent pointer-events-none" />
-
-                      {/* Inner Shell Breadcrumbs & Execution Metadata */}
-                      <div className="shrink-0 px-3 py-1.5 bg-[#0b101c] border-b border-[#1b253b] flex items-center justify-between text-[11px] font-mono select-none">
-                        <div className="flex items-center gap-2">
-                          <span className="text-cyan-400 font-bold">ziphyrus@matrix</span>
-                          <span className="text-slate-600">:</span>
-                          <span className="text-emerald-400">
-                            ~/judge/{currentProblem?.code || "PRB-0001"}
-                          </span>
-                          <span className="text-slate-600 font-sans text-[10px] hidden sm:inline">
-                            (main)
-                          </span>
-                          <span className="text-cyan-400">❯</span>
-                          <span className="text-slate-200">
-                            solution.
-                            {language === "python"
-                              ? "py"
-                              : language === "javascript"
-                              ? "js"
-                              : language === "cpp"
-                              ? "cpp"
-                              : "java"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-[10px]">
-                          <span className="px-1.5 py-0.5 rounded bg-[#131c2e] text-slate-300 border border-[#212f4b] hidden md:inline">
-                            {language.toUpperCase()} 21
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded bg-[#131c2e] text-slate-300 border border-[#212f4b] hidden sm:inline">
-                            cgroups • 256MB
-                          </span>
-                          {(sampleResult || submissionResult) && (
-                            <span
-                              className={cn(
-                                "px-2 py-0.5 rounded font-bold border",
-                                submissionResult?.status === "accepted" ||
-                                  sampleResult?.status === "sample_passed"
-                                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_8px_rgba(52,211,153,0.2)]"
-                                  : "bg-rose-500/20 text-rose-400 border-rose-500/40 shadow-[0_0_8px_rgba(244,63,94,0.2)]"
-                              )}
-                            >
-                              {submissionResult?.status === "accepted" ||
-                              sampleResult?.status === "sample_passed"
-                                ? "EXIT 0 (PASS)"
-                                : "EXIT 1 (FAIL)"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Screen Content: Evaluating / Idle / Output Stream */}
-                      {running || submitting ? (
-                        /* Running / Evaluating Animated Stream */
-                        <div className="p-4 space-y-3 text-slate-300">
-                          <div className="flex items-center gap-2 text-cyan-400 font-semibold text-xs">
-                            <Terminal className="w-4 h-4 animate-spin" />
-                            <span>
-                              ❯ zx-judge evaluate --problem={currentProblem?.code || "PRB"} --lang={language}
-                            </span>
-                          </div>
-
-                          <div className="pl-6 space-y-1.5 text-xs">
-                            <div className="flex items-center gap-2 text-emerald-400">
-                              <Check className="w-3.5 h-3.5" />
-                              <span>[1/3] Parsed AST and validated syntax tokens</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-cyan-400 font-medium animate-pulse">
-                              <span className="w-3.5 h-3.5 inline-block rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
-                              <span>[2/3] Spawning isolated Linux cgroups runtime container...</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-slate-600">
-                              <span className="w-3.5 h-3.5 inline-block rounded-full bg-slate-800" />
-                              <span>[3/3] Streaming test suites through stdin/stdout channel...</span>
-                            </div>
-                          </div>
-
-                          <div className="pt-2">
-                            <div className="h-1.5 w-full bg-[#111827] rounded-full overflow-hidden border border-cyan-900/30">
-                              <div className="h-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-indigo-500 rounded-full animate-pulse w-3/4 shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
-                            </div>
-                          </div>
-                        </div>
-                      ) : !sampleResult && !submissionResult ? (
-                        /* Hacker Terminal Welcome Standby Screen */
-                        <div className="p-4 space-y-3 text-slate-300">
-                          <div className="text-cyan-400/80 text-[11px] leading-tight select-none font-bold">
-                            <div>┌─────────────────────────────────────────────────────────────────┐</div>
-                            <div>│  Z I P H Y R U S - X   E X E C U T I O N   M A T R I X          │</div>
-                            <div>│  High-Performance Algorithmic Sandbox (Alpine 3.19 • x86_64)    │</div>
-                            <div>└─────────────────────────────────────────────────────────────────┘</div>
-                          </div>
-
-                          <div className="space-y-1 text-xs text-slate-400">
-                            <div>
-                              <span className="text-slate-500">Target Problem : </span>
-                              <span className="text-slate-200 font-semibold">
-                                {currentProblem?.title || "Problem"}
-                              </span>
-                              <span className="text-slate-500"> ({currentProblem?.code})</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500">Active Compiler : </span>
-                              <span className="text-emerald-400 font-medium">
-                                {language.toUpperCase()} Runtime
-                              </span>
-                              <span className="text-slate-500"> • Ceiling: 256MB RAM / 2000ms CPU</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500">Session Status  : </span>
-                              <span className="text-cyan-400 font-semibold">STANDBY</span>
-                              <span className="text-slate-500"> — Sandbox primed & awaiting execution</span>
-                            </div>
-                          </div>
-
-                          <div className="pt-2 flex flex-wrap items-center gap-2">
-                            <Button
-                              size="sm"
-                              onClick={handleRunSample}
-                              className="h-7 px-3 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-mono shadow-md font-semibold"
-                            >
-                              <Play className="w-3.5 h-3.5 fill-white" />
-                              <span>Run Sample Tests</span>
-                              <span className="text-[10px] opacity-75">(Ctrl+')</span>
-                            </Button>
-
-                            <Button
-                              size="sm"
-                              onClick={handleSubmit}
-                              className="h-7 px-3 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-mono shadow-md font-semibold"
-                            >
-                              <Send className="w-3.5 h-3.5" />
-                              <span>Submit to Matrix</span>
-                              <span className="text-[10px] opacity-75">(Ctrl+Enter)</span>
-                            </Button>
-                          </div>
-
-                          <div className="pt-2 text-slate-500 text-[11px] flex items-center">
-                            <span className="text-cyan-400 font-bold">ziphyrus@matrix</span>
-                            <span className="text-slate-600">:</span>
-                            <span className="text-emerald-400">~/judge</span>
-                            <span className="text-cyan-400 ml-1">❯</span>
-                            <span className="text-slate-400 ml-1.5">awaiting execution trigger</span>
-                            <span className="inline-block w-2 h-3.5 bg-emerald-400 animate-pulse ml-1 align-middle shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                          </div>
-                        </div>
-                      ) : (
-                        /* Line-Numbered Monospaced Stream with Rich Syntax */
-                        <div
+              <div className="flex-1 min-h-0 overflow-y-auto p-3.5 bg-background/50 flex flex-col justify-center">
+                {/* 1. Testcase Tab View */}
+                {activeBottomTab === "testcase" && (
+                  <div className="space-y-3">
+                    {/* Case Pills: Case 1, Case 2, Case 3 */}
+                    <div className="flex items-center gap-1.5">
+                      {[0, 1, 2].map((idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setActiveCaseIndex(idx)}
                           className={cn(
-                            "p-3 font-mono text-xs leading-relaxed overflow-y-auto max-h-[360px]",
-                            terminalWordWrap ? "break-words" : "overflow-x-auto whitespace-pre"
+                            "px-2.5 py-1 rounded text-xs font-mono transition-colors border",
+                            activeCaseIndex === idx
+                              ? "bg-muted text-foreground border-border font-semibold shadow-xs"
+                              : "bg-transparent text-muted-foreground border-transparent hover:bg-muted/40"
                           )}
                         >
+                          Case {idx + 1}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Test Case Inputs Mock / Data */}
+                    <div className="space-y-2 text-xs font-mono">
+                      <div>
+                        <span className="text-muted-foreground block text-[11px] mb-1">nums =</span>
+                        <div className="p-2 rounded bg-muted/30 border border-border/50 text-foreground">
+                          {activeCaseIndex === 0
+                            ? "[2,7,11,15]"
+                            : activeCaseIndex === 1
+                            ? "[3,2,4]"
+                            : "[3,3]"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[11px] mb-1">target =</span>
+                        <div className="p-2 rounded bg-muted/30 border border-border/50 text-foreground">
+                          {activeCaseIndex === 0 ? "9" : activeCaseIndex === 1 ? "6" : "6"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Test Result Tab View */}
+                {activeBottomTab === "result" && (
+                  <div className="flex-1 flex flex-col justify-center">
+                    {running || submitting ? (
+                      <div className="py-8 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+                        <Terminal className="w-5 h-5 text-primary animate-spin" />
+                        <span>Evaluating test cases on judge sandbox…</span>
+                      </div>
+                    ) : !sampleResult && !submissionResult ? (
+                      /* Exact LeetCode Empty State Matching Screenshot! */
+                      <div className="py-10 text-center select-none">
+                        <p className="text-muted-foreground text-sm font-sans">
+                          You must run your code first
+                        </p>
+                      </div>
+                    ) : (
+                      /* Executed Result Display: VS Code Integrated Terminal */
+                      <div className="space-y-3">
+                        {/* Terminal Control Bar */}
+                        <div className="flex items-center justify-between pb-1.5 border-b border-border/40">
+                          <div className="flex items-center gap-2 font-mono text-xs text-foreground">
+                            <Terminal className="w-3.5 h-3.5 text-primary" />
+                            <span className="font-semibold text-xs">TERMINAL</span>
+                            <span className="text-muted-foreground text-[11px]">
+                              ~/judge/solution.{language === "python" ? "py" : language === "javascript" ? "js" : language === "cpp" ? "cpp" : "java"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {/* Exit Status Badge */}
+                            {(sampleResult || submissionResult) && (
+                              <Badge
+                                className={cn(
+                                  "text-[10px] font-mono",
+                                  (submissionResult?.status === "accepted" || sampleResult?.status === "sample_passed")
+                                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                    : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                                )}
+                              >
+                                {(submissionResult?.status === "accepted" || sampleResult?.status === "sample_passed")
+                                  ? "exit 0 (Success)"
+                                  : (submissionResult?.status === "compile_error" || sampleResult?.status === "compile_error")
+                                  ? "exit 1 (Compile Error)"
+                                  : "exit 1 (Wrong Answer)"}
+                              </Badge>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleCopyTerminalOutput}
+                              className="h-6 px-2 text-[11px] gap-1 text-muted-foreground hover:text-foreground font-mono"
+                              title="Copy Terminal Output"
+                            >
+                              {terminalCopied ? (
+                                <Check className="w-3 h-3 text-emerald-500" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                              <span>{terminalCopied ? "Copied" : "Copy"}</span>
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleClearTerminal}
+                              className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground font-mono"
+                              title="Clear Terminal"
+                            >
+                              Clear
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Monospaced Dark Integrated Terminal Screen */}
+                        <div className="rounded-md bg-[#0c0d12] border border-[#272b38] p-3 font-mono text-xs leading-5 text-[#c9d1d9] overflow-x-auto shadow-inner select-text">
                           {(
                             submissionResult?.terminalOutput ||
                             sampleResult?.terminalOutput ||
                             submissionResult?.compileError ||
                             sampleResult?.compileError ||
-                            "$ run solution\nExecution completed with status: " +
-                              (sampleResult?.status || submissionResult?.status || "done")
+                            "$ run solution\nExecution completed with status: " + (sampleResult?.status || submissionResult?.status || "done")
                           )
                             .split("\n")
                             .map((line: string, idx: number) => {
-                              const lineNum = (idx + 1).toString().padStart(2, "0");
-                              let content = <span>{line || "\u00A0"}</span>;
-
-                              if (line.startsWith("$") || line.startsWith("❯")) {
-                                content = (
-                                  <span className="text-cyan-400 font-semibold flex items-center gap-1.5">
-                                    <span className="text-emerald-400">❯</span>
-                                    <span>{line.replace(/^[$❯]\s*/, "")}</span>
-                                  </span>
-                                );
+                              let styleClass = "text-[#c9d1d9]";
+                              if (line.startsWith("$")) {
+                                styleClass = "text-cyan-400 font-semibold";
                               } else if (
                                 line.includes("error:") ||
                                 line.includes("SyntaxError:") ||
                                 line.includes("NameError:") ||
                                 line.includes("ReferenceError:")
                               ) {
-                                content = (
-                                  <span className="text-rose-400 font-bold bg-rose-500/15 border-l-2 border-rose-500 px-1.5 py-0.5 rounded inline-block">
-                                    {line}
-                                  </span>
-                                );
+                                styleClass = "text-rose-400 font-bold bg-rose-500/15 px-1 rounded inline-block";
                               } else if (line.includes("^")) {
-                                content = (
-                                  <span className="text-amber-400 font-bold">{line}</span>
-                                );
-                              } else if (
-                                line.includes("✓") ||
-                                line.includes("[PASS]") ||
-                                line.includes("ACCEPTED") ||
-                                line.includes("Passed")
-                              ) {
-                                content = (
-                                  <span className="text-emerald-400 font-medium bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 inline-block">
-                                    {line}
-                                  </span>
-                                );
-                              } else if (
-                                line.includes("✗") ||
-                                line.includes("[FAIL]") ||
-                                line.includes("WRONG ANSWER")
-                              ) {
-                                content = (
-                                  <span className="text-rose-400 font-medium bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20 inline-block">
-                                    {line}
-                                  </span>
-                                );
+                                styleClass = "text-amber-400 font-bold";
+                              } else if (line.includes("✓") || line.includes("[PASS]") || line.includes("ACCEPTED") || line.includes("Passed")) {
+                                styleClass = "text-emerald-400 font-semibold";
+                              } else if (line.includes("✗") || line.includes("[FAIL]") || line.includes("WRONG ANSWER")) {
+                                styleClass = "text-rose-400 font-semibold";
                               } else if (line.startsWith("Process exited with code")) {
-                                content = (
-                                  <span className="text-slate-400 font-semibold pt-1 border-t border-slate-800/80 mt-1 block">
-                                    {line}
-                                  </span>
-                                );
-                              } else {
-                                content = <span className="text-slate-300">{line || "\u00A0"}</span>;
+                                styleClass = "text-muted-foreground/80 pt-1 border-t border-white/10 mt-1 block font-semibold";
                               }
 
                               return (
-                                <div
-                                  key={idx}
-                                  className="flex items-start hover:bg-slate-900/50 rounded px-1 -mx-1"
-                                >
-                                  <span className="w-8 shrink-0 select-none text-slate-600 font-mono text-[11px] text-right pr-2.5 border-r border-slate-800/80 mr-3">
-                                    {lineNum}
-                                  </span>
-                                  <div className="flex-1 min-w-0">{content}</div>
+                                <div key={idx} className={styleClass}>
+                                  {line || "\u00A0"}
                                 </div>
                               );
                             })}
-
-                          <div className="pt-2 flex items-center text-slate-500 text-[11px]">
-                            <span className="w-8 shrink-0 text-slate-700 text-right pr-2.5 border-r border-slate-800/80 mr-3 select-none">
-                              ➜
-                            </span>
-                            <span className="text-cyan-400 font-bold">ziphyrus@matrix</span>
-                            <span className="text-slate-600">:</span>
-                            <span className="text-emerald-400">~/judge</span>
-                            <span className="text-cyan-400 ml-1">❯</span>
-                            <span className="inline-block w-2 h-3.5 bg-emerald-400 animate-pulse ml-1 align-middle shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Sample Test Result Quick Cards */}
-                    {sampleResult && sampleResult.results && sampleResult.results.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground font-mono px-0.5">
-                          <span className="flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                            <span>Sample Validation Benchmark:</span>
-                          </span>
-                          <span>
-                            Runtime: <strong className="text-foreground">{sampleResult.executionTimeMs} ms</strong> • Memory: <strong className="text-foreground">{sampleResult.memoryUsedMb} MB</strong>
-                          </span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          {sampleResult.results.map((r: any, idx: number) => (
-                            <div
-                              key={idx}
-                              className={cn(
-                                "p-2 rounded border text-[11px] font-mono flex items-center justify-between transition-colors",
-                                r.passed
-                                  ? "bg-emerald-500/5 border-emerald-500/25 text-emerald-700 dark:text-emerald-400"
-                                  : "bg-rose-500/5 border-rose-500/25 text-rose-700 dark:text-rose-400"
-                              )}
-                            >
-                              <div className="flex items-center gap-1.5">
-                                {r.passed ? (
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                                ) : (
-                                  <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                                )}
-                                <span className="font-medium">Case {r.orderIndex}</span>
-                              </div>
-                              <span className="text-[10px]">{r.passed ? `${r.executionTimeMs}ms` : "Wrong Output"}</span>
+                        {/* Test Cases Results Breakdown */}
+                        {sampleResult && sampleResult.results && sampleResult.results.length > 0 && (
+                          <div className="space-y-1.5 pt-1">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground font-mono px-0.5">
+                              <span>Sample Test Results:</span>
+                              <span>
+                                Runtime: <strong>{sampleResult.executionTimeMs} ms</strong> • Memory: <strong>{sampleResult.memoryUsedMb} MB</strong>
+                              </span>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Full Submission Banner & GitHub Continuous Sync */}
-                    {submissionResult && (
-                      <div className="space-y-2 pt-1 border-t border-border/40">
-                        <div className="flex items-center justify-between text-xs">
-                          <span
-                            className={cn(
-                              "font-bold flex items-center gap-1.5",
-                              submissionResult.status === "accepted"
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : submissionResult.status === "compile_error"
-                                ? "text-amber-600 dark:text-amber-400"
-                                : "text-rose-600 dark:text-rose-400"
-                            )}
-                          >
-                            {submissionResult.status === "accepted" ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4" />
-                                <span>Accepted (Score: {submissionResult.score}/100)</span>
-                              </>
-                            ) : submissionResult.status === "compile_error" ? (
-                              <>
-                                <AlertTriangle className="w-4 h-4" />
-                                <span>Compile Error (Score: 0/100)</span>
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="w-4 h-4" />
-                                <span>Wrong Answer (Score: {submissionResult.score}/100)</span>
-                              </>
-                            )}
-                          </span>
-
-                          <div className="flex items-center gap-3 text-muted-foreground text-[11px] font-mono">
-                            <span>
-                              Testcases: {submissionResult.testCasesPassed}/{submissionResult.totalTestCases}
-                            </span>
-                          </div>
-                        </div>
-
-                        {submissionResult.githubSynced && (
-                          <div className="p-2.5 rounded bg-muted/30 border border-border flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2">
-                              <GitBranch className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                              <div className="min-w-0">
-                                <span className="font-semibold text-foreground">
-                                  Synced to Student GitHub
-                                </span>
-                                <span className="block font-mono text-[11px] text-muted-foreground truncate">
-                                  {submissionResult.githubRepoName || targetRepo} &bull; {submissionResult.githubFilePath}
-                                </span>
-                              </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              {sampleResult.results.map((r: any, idx: number) => (
+                                <div
+                                  key={idx}
+                                  className={cn(
+                                    "p-2 rounded border text-[11px] font-mono flex items-center justify-between",
+                                    r.passed
+                                      ? "bg-emerald-500/5 border-emerald-500/25 text-emerald-700 dark:text-emerald-400"
+                                      : "bg-rose-500/5 border-rose-500/25 text-rose-700 dark:text-rose-400"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-1.5">
+                                    {r.passed ? (
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                    ) : (
+                                      <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                                    )}
+                                    <span className="font-medium">Case {r.orderIndex}</span>
+                                  </div>
+                                  <span>{r.passed ? "Passed" : "Wrong Output"}</span>
+                                </div>
+                              ))}
                             </div>
-                            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-mono shrink-0">
-                              Commit: {submissionResult.githubCommitSha?.slice(0, 10)}
-                            </Badge>
                           </div>
                         )}
-                      </div>
-                    )}
-                  </div>
-                )}
 
-                {/* ================================================================ */}
-                {/* TAB 2: INTERACTIVE TEST CASE RUNNER (☑ Test Cases)              */}
-                {/* ================================================================ */}
-                {activeBottomTab === "testcase" && (() => {
-                  const problemTestCases =
-                    currentProblem?.testCases && currentProblem.testCases.length > 0
-                      ? currentProblem.testCases
-                      : [
-                          { id: "sample-1", orderIndex: 1, input: "nums = [2,7,11,15], target = 9", expectedOutput: "[0,1]" },
-                          { id: "sample-2", orderIndex: 2, input: "nums = [3,2,4], target = 6", expectedOutput: "[1,2]" },
-                          { id: "sample-3", orderIndex: 3, input: "nums = [3,3], target = 6", expectedOutput: "[0,1]" },
-                        ];
-                  const activeTestCase = problemTestCases[activeCaseIndex] || problemTestCases[0];
-                  const activeSampleResult = sampleResult?.results?.find(
-                    (r: any) => r.orderIndex === (activeCaseIndex + 1)
-                  );
-
-                  return (
-                    <div className="space-y-3 font-mono">
-                      {/* Case Pill Selector */}
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {problemTestCases.map((tc: any, idx: number) => {
-                          const res = sampleResult?.results?.find((r: any) => r.orderIndex === (idx + 1));
-                          return (
-                            <button
-                              key={idx}
-                              type="button"
-                              onClick={() => setActiveCaseIndex(idx)}
-                              className={cn(
-                                "flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border",
-                                activeCaseIndex === idx
-                                  ? "bg-muted text-foreground border-border font-semibold shadow-xs"
-                                  : "bg-transparent text-muted-foreground border-transparent hover:bg-muted/40"
-                              )}
-                            >
-                              {res && (
-                                <span className={cn("w-1.5 h-1.5 rounded-full", res.passed ? "bg-emerald-500" : "bg-rose-500")} />
-                              )}
-                              <span>Case {idx + 1}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Case Input & Output Inspector */}
-                      <div className="space-y-2.5">
-                        <div className="space-y-1">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
-                            Input
-                          </span>
-                          <div className="p-2.5 rounded bg-muted/40 border border-border/50 text-foreground font-mono text-xs overflow-x-auto select-all">
-                            {activeTestCase?.input}
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
-                            Expected Output
-                          </span>
-                          <div className="p-2.5 rounded bg-muted/40 border border-border/50 text-foreground font-mono text-xs overflow-x-auto select-all">
-                            {activeTestCase?.expectedOutput}
-                          </div>
-                        </div>
-
-                        {activeSampleResult && (
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-muted-foreground uppercase tracking-wider font-semibold">
-                                Actual Output
-                              </span>
+                        {/* Full Submission Banner & GitHub Sync */}
+                        {submissionResult && (
+                          <div className="space-y-2 pt-2 border-t border-border/40">
+                            <div className="flex items-center justify-between text-xs">
                               <span
                                 className={cn(
-                                  "font-bold text-[10px] px-1.5 py-0.5 rounded border",
-                                  activeSampleResult.passed
-                                    ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/30"
-                                    : "text-rose-500 bg-rose-500/10 border-rose-500/30"
+                                  "font-bold flex items-center gap-1.5",
+                                  submissionResult.status === "accepted"
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : submissionResult.status === "compile_error"
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-rose-600 dark:text-rose-400"
                                 )}
                               >
-                                {activeSampleResult.passed ? "Match (Passed)" : "Mismatch (Wrong Answer)"}
+                                {submissionResult.status === "accepted" ? (
+                                  <>
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span>Submission Accepted (Score: {submissionResult.score}/100)</span>
+                                  </>
+                                ) : submissionResult.status === "compile_error" ? (
+                                  <>
+                                    <AlertTriangle className="w-4 h-4" />
+                                    <span>Compile Error (Score: 0/100)</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle className="w-4 h-4" />
+                                    <span>Wrong Answer (Score: {submissionResult.score}/100)</span>
+                                  </>
+                                )}
                               </span>
+
+                              <div className="flex items-center gap-3 text-muted-foreground text-[11px] font-mono">
+                                <span>
+                                  Testcases: {submissionResult.testCasesPassed}/{submissionResult.totalTestCases}
+                                </span>
+                              </div>
                             </div>
-                            <div
-                              className={cn(
-                                "p-2.5 rounded border font-mono text-xs overflow-x-auto select-all",
-                                activeSampleResult.passed
-                                  ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
-                                  : "bg-rose-500/5 border-rose-500/30 text-rose-600 dark:text-rose-400"
-                              )}
-                            >
-                              {activeSampleResult.actualOutput}
-                            </div>
+
+                            {submissionResult.githubSynced && (
+                              <div className="p-2.5 rounded bg-muted/30 border border-border flex items-center justify-between text-xs mt-2">
+                                <div className="flex items-center gap-2">
+                                  <GitBranch className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                  <div>
+                                    <span className="font-semibold text-foreground">
+                                      Synced to Student GitHub
+                                    </span>
+                                    <span className="block font-mono text-[11px] text-muted-foreground">
+                                      {submissionResult.githubRepoName || targetRepo} &bull; {submissionResult.githubFilePath}
+                                    </span>
+                                  </div>
+                                </div>
+                                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-mono">
+                                  Commit: {submissionResult.githubCommitSha?.slice(0, 10)}
+                                </Badge>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    </div>
-                  );
-                })()}
-
-                {/* ================================================================ */}
-                {/* TAB 3: TELEMETRY & GITHUB SYNC (⚡ Telemetry)                    */}
-                {/* ================================================================ */}
-                {activeBottomTab === "telemetry" && (
-                  <div className="space-y-3 font-mono">
-                    {/* Grid of Key Benchmark Cards */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                          <span>Runtime</span>
-                        </div>
-                        <div className="text-lg font-bold text-foreground">
-                          {sampleResult?.executionTimeMs || submissionResult?.executionTimeMs || 22} ms
-                        </div>
-                        <div className="text-[10px] text-emerald-500 font-sans">
-                          ⚡ Faster than 88.5%
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Memory</span>
-                        </div>
-                        <div className="text-lg font-bold text-foreground">
-                          {sampleResult?.memoryUsedMb || submissionResult?.memoryUsedMb || 15.2} MB
-                        </div>
-                        <div className="text-[10px] text-emerald-500 font-sans">
-                          Optimal footprint
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                          <span>Accuracy</span>
-                        </div>
-                        <div className="text-lg font-bold text-foreground">
-                          {submissionResult
-                            ? `${submissionResult.score}%`
-                            : sampleResult
-                            ? `${Math.round((sampleResult.passedSampleCases / sampleResult.totalSampleCases) * 100)}%`
-                            : "100%"}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground font-sans">
-                          {submissionResult
-                            ? `${submissionResult.testCasesPassed}/${submissionResult.totalTestCases} Cases`
-                            : sampleResult
-                            ? `${sampleResult.passedSampleCases}/${sampleResult.totalSampleCases} Samples`
-                            : "Awaiting run"}
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Layers className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Complexity</span>
-                        </div>
-                        <div className="text-sm font-bold text-foreground pt-0.5">
-                          O(N) <span className="text-xs font-normal text-muted-foreground">time</span>
-                        </div>
-                        <div className="text-[10px] text-muted-foreground font-sans">
-                          O(N) space ceiling
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* GitHub Continuous Synchronization Card */}
-                    <div className="p-3 rounded-lg border border-border/60 bg-gradient-to-r from-muted/30 to-muted/10 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <GitBranch className="w-4 h-4 text-emerald-500" />
-                          <span className="font-semibold text-xs text-foreground">
-                            Student GitHub Continuous Sync
-                          </span>
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "font-mono text-[10px]",
-                            submissionResult?.githubSynced
-                              ? "text-emerald-500 border-emerald-500/40 bg-emerald-500/10"
-                              : "text-muted-foreground"
-                          )}
-                        >
-                          {submissionResult?.githubSynced ? "Auto-synced" : "Ready on Accepted"}
-                        </Badge>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        <div className="p-2 rounded bg-background/60 border border-border/40">
-                          <span className="text-[10px] text-muted-foreground block">Target Repository</span>
-                          <span className="text-foreground font-semibold">
-                            {submissionResult?.githubRepoName || targetRepo}
-                          </span>
-                        </div>
-                        <div className="p-2 rounded bg-background/60 border border-border/40">
-                          <span className="text-[10px] text-muted-foreground block">Language File Path</span>
-                          <span className="text-foreground font-semibold">
-                            {submissionResult?.githubFilePath ||
-                              `${language === "python" ? "Python" : language === "cpp" ? "Cpp" : language === "javascript" ? "JavaScript" : "Java"}/solution.${language === "python" ? "py" : language === "cpp" ? "cpp" : language === "javascript" ? "js" : "java"}`}
-                          </span>
-                        </div>
-                      </div>
-
-                      {submissionResult?.githubCommitSha && (
-                        <div className="text-[11px] text-muted-foreground flex items-center justify-between pt-1">
-                          <span>
-                            Commit: <code className="text-primary font-mono">{submissionResult.githubCommitSha}</code>
-                          </span>
-                          <span className="text-emerald-500 font-sans text-[11px]">✓ Pushed to origin/main</span>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
