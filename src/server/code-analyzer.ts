@@ -125,16 +125,31 @@ interface Token {
   isAfterDot: boolean;
 }
 
+export interface CodeAnalysisOptions {
+  entryFunctionName?: string;
+  problemCode?: string;
+  problemTitle?: string;
+  expectedParams?: string[];
+  expectedReturnType?: string;
+}
+
 /**
  * Main Static Analysis & Identifier Verification Engine
  */
 export function analyzeSourceCode(
   language: string,
   sourceCode: string,
-  entryFunctionName = "twoSum"
+  optionsOrEntryFunction: string | CodeAnalysisOptions = "twoSum"
 ): CodeAnalysisResult {
   const normLang = (language || "java").toLowerCase();
   const trimmed = (sourceCode || "").trim();
+
+  const options: CodeAnalysisOptions =
+    typeof optionsOrEntryFunction === "string"
+      ? { entryFunctionName: optionsOrEntryFunction }
+      : optionsOrEntryFunction || {};
+
+  const entryFunctionName = options.entryFunctionName || "twoSum";
 
   if (!trimmed) {
     return {
@@ -151,8 +166,42 @@ export function analyzeSourceCode(
     return bracketCheck;
   }
 
-  // 2. Tokenize code and track identifier declarations & usages
   const lines = sourceCode.split(/\r?\n/);
+
+  // 2. Python Block Headers (':') and Indentation verification
+  if (normLang.includes("python") || normLang === "py") {
+    const pyCheck = validatePythonBlockHeadersAndIndentation(lines, normLang);
+    if (pyCheck && pyCheck.hasError) return pyCheck;
+  }
+
+  // 3. Semicolon validation in Java and C++
+  if (
+    (normLang.includes("java") && !normLang.includes("script")) ||
+    normLang.includes("cpp") ||
+    normLang.includes("c++") ||
+    normLang === "c"
+  ) {
+    const semiCheck = validateSemicolons(lines, normLang);
+    if (semiCheck && semiCheck.hasError) return semiCheck;
+  }
+
+  // 4. Arithmetic exceptions (division/modulo by zero) and null pointer dereference
+  const mathAndPointerCheck = validateArithmeticAndPointers(lines, normLang, entryFunctionName);
+  if (mathAndPointerCheck && mathAndPointerCheck.hasError) return mathAndPointerCheck;
+
+  // 5. Infinite loop / Time Limit Exceeded (TLE) detection
+  const loopCheck = validateInfiniteLoops(lines, normLang);
+  if (loopCheck && loopCheck.hasError) return loopCheck;
+
+  // 6. Return statement presence and type compatibility in non-void functions
+  const returnCheck = validateReturnStatements(lines, normLang);
+  if (returnCheck && returnCheck.hasError) return returnCheck;
+
+  // 7. Class Structure & Method Signature / Parameter checks
+  const structCheck = validateClassAndMethodSignatures(lines, normLang, options);
+  if (structCheck && structCheck.hasError) return structCheck;
+
+  // 8. Tokenize code and track identifier declarations & usages
   const declaredSymbols = new Set<string>();
 
   // Add standard language builtins and globals
@@ -177,6 +226,7 @@ export function analyzeSourceCode(
   langBuiltins.forEach((b) => declaredSymbols.add(b));
   declaredSymbols.add(entryFunctionName);
   declaredSymbols.add("Solution");
+  declaredSymbols.add("LRUCache");
 
   // First Pass: Collect declared parameters, class names, function names, and variable assignments
   collectDeclarations(lines, normLang, declaredSymbols);
@@ -294,8 +344,774 @@ function validateBracketsAndSyntax(code: string, language: string): CodeAnalysis
 }
 
 /**
- * Pass 1: Collects declared identifiers across the file.
+ * Validates Python block headers ending in ':' and subsequent block indentation.
  */
+function validatePythonBlockHeadersAndIndentation(
+  lines: string[],
+  normLang: string
+): CodeAnalysisResult | null {
+  const BLOCK_START_KEYWORDS = [
+    "def", "class", "if", "elif", "else", "while", "for", "try", "except", "finally", "with", "async"
+  ];
+  const blockRegex = new RegExp(`^(${BLOCK_START_KEYWORDS.join("|")})\\b`);
+
+  let parenDepth = 0;
+  let bracketDepth = 0;
+  let braceDepth = 0;
+  let pendingBlockHeader: { line: number; indent: number; keyword: string; text: string } | null = null;
+
+  for (let l = 0; l < lines.length; l++) {
+    const rawLine = lines[l];
+    let inStr: string | null = null;
+    let commentStart = -1;
+
+    for (let c = 0; c < rawLine.length; c++) {
+      const ch = rawLine[c];
+      if (inStr) {
+        if (ch === inStr && rawLine[c - 1] !== "\\") {
+          inStr = null;
+        }
+      } else {
+        if (ch === '"' || ch === "'") {
+          inStr = ch;
+        } else if (ch === "#") {
+          commentStart = c;
+          break;
+        }
+      }
+    }
+
+    const cleanLine = commentStart >= 0 ? rawLine.substring(0, commentStart) : rawLine;
+    const trimmed = cleanLine.trim();
+
+    if (!trimmed) {
+      continue;
+    }
+
+    // Measure indentation of non-empty line
+    const matchIndent = cleanLine.match(/^(\s*)/);
+    const lineIndent = matchIndent ? matchIndent[1].length : 0;
+
+    // If previous line was a block header ending in ':', this non-empty line MUST be indented more
+    if (pendingBlockHeader) {
+      if (lineIndent <= pendingBlockHeader.indent) {
+        const lineNum = l + 1;
+        const term = [
+          `$ python3 solution.py`,
+          `  File "solution.py", line ${lineNum}`,
+          `    ${trimmed}`,
+          `    ^`,
+          `IndentationError: expected an indented block after '${pendingBlockHeader.keyword}' statement on line ${pendingBlockHeader.line}`,
+          ``,
+          `Process exited with code 1 (Syntax Error)`,
+        ].join("\n");
+
+        return {
+          hasError: true,
+          errorType: "syntax_error",
+          errorLine: lineNum,
+          errorColumn: lineIndent + 1,
+          errorMessage: `IndentationError: expected an indented block after '${pendingBlockHeader.keyword}' statement on line ${pendingBlockHeader.line}`,
+          terminalOutput: term,
+        };
+      }
+      pendingBlockHeader = null;
+    }
+
+    // Update bracket depths to handle multi-line expressions
+    for (let c = 0; c < cleanLine.length; c++) {
+      const ch = cleanLine[c];
+      if (ch === "(") parenDepth++;
+      else if (ch === ")") parenDepth = Math.max(0, parenDepth - 1);
+      else if (ch === "[") bracketDepth++;
+      else if (ch === "]") bracketDepth = Math.max(0, bracketDepth - 1);
+      else if (ch === "{") braceDepth++;
+      else if (ch === "}") braceDepth = Math.max(0, braceDepth - 1);
+    }
+
+    // If we are inside multi-line bracket or parentheses, skip block header ending colon check until closed
+    if (parenDepth > 0 || bracketDepth > 0 || braceDepth > 0) {
+      continue;
+    }
+
+    // Check if line starts a block statement
+    const matchKeyword = trimmed.match(blockRegex);
+    if (matchKeyword) {
+      const keyword = matchKeyword[1];
+      // Find colon outside of strings and brackets
+      let hasColon = false;
+      let colonIdx = -1;
+      let testInStr: string | null = null;
+      let pDepth = 0;
+      let bDepth = 0;
+
+      for (let i = 0; i < cleanLine.length; i++) {
+        const cChar = cleanLine[i];
+        if (testInStr) {
+          if (cChar === testInStr && cleanLine[i - 1] !== "\\") testInStr = null;
+        } else {
+          if (cChar === '"' || cChar === "'") testInStr = cChar;
+          else if (cChar === "(") pDepth++;
+          else if (cChar === ")") pDepth = Math.max(0, pDepth - 1);
+          else if (cChar === "[") bDepth++;
+          else if (cChar === "]") bDepth = Math.max(0, bDepth - 1);
+          else if (cChar === ":" && pDepth === 0 && bDepth === 0) {
+            hasColon = true;
+            colonIdx = i;
+            break;
+          }
+        }
+      }
+
+      if (!hasColon) {
+        const lineNum = l + 1;
+        const col = cleanLine.length;
+        const term = [
+          `$ python3 solution.py`,
+          `  File "solution.py", line ${lineNum}`,
+          `    ${trimmed}`,
+          `    ${" ".repeat(Math.max(0, trimmed.length))}^`,
+          `SyntaxError: expected ':'`,
+          ``,
+          `Process exited with code 1 (Syntax Error)`,
+        ].join("\n");
+
+        return {
+          hasError: true,
+          errorType: "syntax_error",
+          errorLine: lineNum,
+          errorColumn: col,
+          errorMessage: `SyntaxError: expected ':' at line ${lineNum}`,
+          terminalOutput: term,
+        };
+      } else {
+        const afterColon = cleanLine.substring(colonIdx + 1).trim();
+        if (afterColon.length === 0) {
+          pendingBlockHeader = {
+            line: l + 1,
+            indent: lineIndent,
+            keyword,
+            text: trimmed,
+          };
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validates semicolons at the end of statements in Java and C++.
+ */
+function validateSemicolons(lines: string[], normLang: string): CodeAnalysisResult | null {
+  const isCpp = normLang.includes("cpp") || normLang.includes("c++") || normLang === "c";
+
+  let parenDepth = 0;
+  let bracketDepth = 0;
+  let inMultiLineComment = false;
+
+  for (let l = 0; l < lines.length; l++) {
+    const rawLine = lines[l];
+    let stripped = rawLine.trim();
+
+    if (inMultiLineComment) {
+      if (stripped.includes("*/")) {
+        inMultiLineComment = false;
+        stripped = stripped.substring(stripped.indexOf("*/") + 2).trim();
+      } else {
+        continue;
+      }
+    }
+
+    if (stripped.startsWith("/*")) {
+      if (stripped.includes("*/")) {
+        stripped = stripped.substring(stripped.indexOf("*/") + 2).trim();
+      } else {
+        inMultiLineComment = true;
+        continue;
+      }
+    }
+
+    // Strip single line comments
+    const singleCommentIdx = stripped.indexOf("//");
+    if (singleCommentIdx >= 0) {
+      stripped = stripped.substring(0, singleCommentIdx).trim();
+    }
+
+    if (!stripped) continue;
+
+    // Skip preprocessor directives in C++
+    if (stripped.startsWith("#")) continue;
+
+    // Skip annotations in Java
+    if (stripped.startsWith("@")) continue;
+
+    // Track open parentheses and square brackets across lines
+    for (let c = 0; c < stripped.length; c++) {
+      const ch = stripped[c];
+      if (ch === "(") parenDepth++;
+      else if (ch === ")") parenDepth = Math.max(0, parenDepth - 1);
+      else if (ch === "[") bracketDepth++;
+      else if (ch === "]") bracketDepth = Math.max(0, bracketDepth - 1);
+    }
+
+    // If still inside parenthesis or brackets, this is a continuation line
+    if (parenDepth > 0 || bracketDepth > 0) {
+      continue;
+    }
+
+    // Lines ending with continuation characters
+    const lastChar = stripped[stripped.length - 1];
+    if (
+      lastChar === "{" ||
+      lastChar === ";" ||
+      lastChar === "," ||
+      lastChar === ":" ||
+      lastChar === "(" ||
+      lastChar === "[" ||
+      lastChar === "+" ||
+      lastChar === "-" ||
+      lastChar === "*" ||
+      lastChar === "/" ||
+      lastChar === "?" ||
+      lastChar === "&" ||
+      lastChar === "|" ||
+      lastChar === "="
+    ) {
+      continue;
+    }
+
+    if (lastChar === "}") {
+      // A line ending in '}' is exempt UNLESS it starts with 'return' or 'throw' or is an assignment:
+      if (!/^return\b/.test(stripped) && !/^throw\b/.test(stripped) && !/=\s*new\s+/.test(stripped)) {
+        continue;
+      }
+    }
+
+    // Control flow headers that don't need a semicolon on the same line if opening brace is on next line
+    if (
+      /^(public\s+|private\s+|protected\s+)?(class|interface|enum|struct)\b/.test(stripped) ||
+      /^for\s*\(/.test(stripped) ||
+      /^if\s*\(/.test(stripped) ||
+      /^else(\s+if\s*\(.*)?$/.test(stripped) ||
+      /^while\s*\(/.test(stripped) ||
+      /^switch\s*\(/.test(stripped) ||
+      /^try$/.test(stripped) ||
+      /^catch\s*\(/.test(stripped) ||
+      /^finally$/.test(stripped) ||
+      /^case\s+/.test(stripped) ||
+      /^default:?$/.test(stripped)
+    ) {
+      continue;
+    }
+
+    // Check if next non-empty line starts with '{' (e.g. method signature or class header split across lines)
+    let nextNonEmpty = "";
+    for (let nl = l + 1; nl < lines.length; nl++) {
+      const nextRaw = lines[nl].replace(/\/\/.*$/, "").trim();
+      if (nextRaw) {
+        nextNonEmpty = nextRaw;
+        break;
+      }
+    }
+    if (nextNonEmpty.startsWith("{")) {
+      continue;
+    }
+
+    // If none of the above exceptions matched, this statement is missing a semicolon!
+    const lineNum = l + 1;
+    const col = rawLine.length;
+    const caretPadding = " ".repeat(Math.max(0, col));
+
+    if (isCpp) {
+      const term = [
+        `$ g++ -std=c++20 solution.cpp -O2`,
+        `solution.cpp:${lineNum}:${col}: error: expected ';' after expression`,
+        `    ${rawLine.trim()}`,
+        `    ${caretPadding}^`,
+        `1 error generated.`,
+        ``,
+        `Process exited with code 1 (Compilation failed)`,
+      ].join("\n");
+
+      return {
+        hasError: true,
+        errorType: "syntax_error",
+        errorLine: lineNum,
+        errorColumn: col,
+        errorMessage: `solution.cpp:${lineNum}:${col}: error: expected ';' after expression`,
+        terminalOutput: term,
+      };
+    }
+
+    const term = [
+      `$ javac Solution.java`,
+      `Solution.java:${lineNum}: error: ';' expected`,
+      `    ${rawLine.trim()}`,
+      `    ${caretPadding}^`,
+      `1 error`,
+      ``,
+      `Process exited with code 1 (Compilation failed)`,
+    ].join("\n");
+
+    return {
+      hasError: true,
+      errorType: "syntax_error",
+      errorLine: lineNum,
+      errorColumn: col,
+      errorMessage: `Solution.java:${lineNum}: error: ';' expected`,
+      terminalOutput: term,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Validates division by zero, null pointer dereference, and negative indexing.
+ */
+function validateArithmeticAndPointers(
+  lines: string[],
+  normLang: string,
+  entryFunctionName: string
+): CodeAnalysisResult | null {
+  const isPython = normLang.includes("python") || normLang === "py";
+  const isJava = normLang.includes("java") && !normLang.includes("script");
+  const isCpp = normLang.includes("cpp") || normLang.includes("c++") || normLang === "c";
+  const isJs = normLang.includes("javascript") || normLang === "js";
+
+  for (let l = 0; l < lines.length; l++) {
+    const rawLine = lines[l];
+    const cleanLine = rawLine.replace(/\/\/.*$/, "").replace(/#.*$/, "").trim();
+    if (!cleanLine) continue;
+
+    // Check division or modulo by literal zero: `/ 0` or `% 0`
+    if (/(?:\/|%)\s*0(?![0-9.a-zA-Z_])/.test(cleanLine)) {
+      const lineNum = l + 1;
+      if (isPython) {
+        const term = [
+          `$ python3 solution.py`,
+          `Traceback (most recent call last):`,
+          `  File "solution.py", line ${lineNum}, in ${entryFunctionName}`,
+          `    ${cleanLine}`,
+          `ZeroDivisionError: division by zero`,
+          ``,
+          `Process exited with code 1 (Runtime Error)`,
+        ].join("\n");
+
+        return {
+          hasError: true,
+          errorType: "runtime_error",
+          errorLine: lineNum,
+          errorMessage: `ZeroDivisionError: division by zero on line ${lineNum}`,
+          terminalOutput: term,
+        };
+      }
+
+      if (isJava) {
+        const term = [
+          `$ java -cp . Solution`,
+          `Exception in thread "main" java.lang.ArithmeticException: / by zero`,
+          `    at Solution.${entryFunctionName}(Solution.java:${lineNum})`,
+          `    at Solution.main(Solution.java:42)`,
+          ``,
+          `Process exited with code 1 (Runtime Error)`,
+        ].join("\n");
+
+        return {
+          hasError: true,
+          errorType: "runtime_error",
+          errorLine: lineNum,
+          errorMessage: `java.lang.ArithmeticException: / by zero at line ${lineNum}`,
+          terminalOutput: term,
+        };
+      }
+
+      if (isCpp) {
+        const term = [
+          `$ ./solution`,
+          `Floating point exception (core dumped): Integer division by zero at line ${lineNum}`,
+          ``,
+          `Process exited with code 136 (Runtime Error)`,
+        ].join("\n");
+
+        return {
+          hasError: true,
+          errorType: "runtime_error",
+          errorLine: lineNum,
+          errorMessage: `Floating point exception: Integer division by zero at line ${lineNum}`,
+          terminalOutput: term,
+        };
+      }
+
+      if (isJs) {
+        const term = [
+          `$ node solution.js`,
+          `/app/solution.js:${lineNum}`,
+          `${rawLine}`,
+          `RangeError: Division by zero encountered`,
+          `    at Solution.${entryFunctionName} (/app/solution.js:${lineNum}:1)`,
+          ``,
+          `Process exited with code 1 (Runtime Error)`,
+        ].join("\n");
+
+        return {
+          hasError: true,
+          errorType: "runtime_error",
+          errorLine: lineNum,
+          errorMessage: `RangeError: Division by zero on line ${lineNum}`,
+          terminalOutput: term,
+        };
+      }
+    }
+
+    // Check Null dereference
+    if (isJava && /\bnull\.\w+/.test(cleanLine)) {
+      const lineNum = l + 1;
+      const term = [
+        `$ java -cp . Solution`,
+        `Exception in thread "main" java.lang.NullPointerException: Cannot invoke method on null object`,
+        `    at Solution.${entryFunctionName}(Solution.java:${lineNum})`,
+        `    at Solution.main(Solution.java:42)`,
+        ``,
+        `Process exited with code 1 (Runtime Error)`,
+      ].join("\n");
+
+      return {
+        hasError: true,
+        errorType: "runtime_error",
+        errorLine: lineNum,
+        errorMessage: `java.lang.NullPointerException on line ${lineNum}`,
+        terminalOutput: term,
+      };
+    }
+
+    if (isPython && /\bNone\.\w+/.test(cleanLine)) {
+      const match = cleanLine.match(/\bNone\.(\w+)/);
+      const attr = match ? match[1] : "attribute";
+      const lineNum = l + 1;
+      const term = [
+        `$ python3 solution.py`,
+        `Traceback (most recent call last):`,
+        `  File "solution.py", line ${lineNum}, in ${entryFunctionName}`,
+        `    ${cleanLine}`,
+        `AttributeError: 'NoneType' object has no attribute '${attr}'`,
+        ``,
+        `Process exited with code 1 (Runtime Error)`,
+      ].join("\n");
+
+      return {
+        hasError: true,
+        errorType: "runtime_error",
+        errorLine: lineNum,
+        errorMessage: `AttributeError: 'NoneType' object has no attribute '${attr}' on line ${lineNum}`,
+        terminalOutput: term,
+      };
+    }
+
+    // Check negative array index in Java: nums[-1]
+    if (isJava && /\[\s*-\s*\d+\s*\]/.test(cleanLine)) {
+      const match = cleanLine.match(/\[\s*(-\s*\d+)\s*\]/);
+      const idxStr = match ? match[1].replace(/\s+/g, "") : "-1";
+      const lineNum = l + 1;
+      const term = [
+        `$ java -cp . Solution`,
+        `Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index ${idxStr} out of bounds for length`,
+        `    at Solution.${entryFunctionName}(Solution.java:${lineNum})`,
+        `    at Solution.main(Solution.java:42)`,
+        ``,
+        `Process exited with code 1 (Runtime Error)`,
+      ].join("\n");
+
+      return {
+        hasError: true,
+        errorType: "runtime_error",
+        errorLine: lineNum,
+        errorMessage: `java.lang.ArrayIndexOutOfBoundsException: Index ${idxStr} out of bounds on line ${lineNum}`,
+        terminalOutput: term,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validates unconditional infinite loops without exit statements.
+ */
+function validateInfiniteLoops(lines: string[], normLang: string): CodeAnalysisResult | null {
+  const isPython = normLang.includes("python") || normLang === "py";
+
+  for (let l = 0; l < lines.length; l++) {
+    const rawLine = lines[l];
+    const cleanLine = rawLine.replace(/\/\/.*$/, "").replace(/#.*$/, "").trim();
+
+    if (isPython) {
+      if (/^while\s+(True|1)\s*:/.test(cleanLine)) {
+        const baseIndentMatch = lines[l].match(/^(\s*)/);
+        const baseIndent = baseIndentMatch ? baseIndentMatch[1].length : 0;
+        let hasTerminator = false;
+
+        for (let j = l + 1; j < lines.length; j++) {
+          const innerClean = lines[j].replace(/#.*$/, "");
+          if (!innerClean.trim()) continue;
+          const innerIndentMatch = lines[j].match(/^(\s*)/);
+          const innerIndent = innerIndentMatch ? innerIndentMatch[1].length : 0;
+          if (innerIndent <= baseIndent) {
+            break;
+          }
+          if (/\b(break|return|raise|exit|sys\.exit)\b/.test(innerClean)) {
+            hasTerminator = true;
+            break;
+          }
+        }
+
+        if (!hasTerminator) {
+          const lineNum = l + 1;
+          const term = [
+            `Time Limit Exceeded (TLE) - Execution timed out after 2000ms`,
+            `Detected infinite loop at line ${lineNum}: 'while True:' loop has no exit condition or break/return statement.`,
+            `Process terminated with exit code 124 (Time Limit Exceeded)`,
+          ].join("\n");
+
+          return {
+            hasError: true,
+            errorType: "runtime_error",
+            errorLine: lineNum,
+            errorMessage: `Time Limit Exceeded (TLE): infinite loop at line ${lineNum}`,
+            terminalOutput: term,
+          };
+        }
+      }
+    } else {
+      if (/^while\s*\(\s*(true|1)\s*\)/.test(cleanLine) || /^for\s*\(\s*;\s*;\s*\)/.test(cleanLine)) {
+        let braceCount = 0;
+        let started = false;
+        let hasTerminator = false;
+
+        for (let j = l; j < lines.length; j++) {
+          const innerClean = lines[j].replace(/\/\/.*$/, "");
+          for (let c = 0; c < innerClean.length; c++) {
+            if (innerClean[c] === "{") {
+              braceCount++;
+              started = true;
+            } else if (innerClean[c] === "}") {
+              braceCount--;
+            }
+          }
+          if (j > l && /\b(break|return|throw|System\.exit)\b/.test(innerClean)) {
+            hasTerminator = true;
+            break;
+          }
+          if (started && braceCount <= 0) {
+            break;
+          }
+        }
+
+        if (!hasTerminator) {
+          const lineNum = l + 1;
+          const term = [
+            `Time Limit Exceeded (TLE) - Execution timed out after 2000ms`,
+            `Detected infinite loop at line ${lineNum}: Loop has no exit condition or break/return statement.`,
+            `Process terminated with exit code 124 (Time Limit Exceeded)`,
+          ].join("\n");
+
+          return {
+            hasError: true,
+            errorType: "runtime_error",
+            errorLine: lineNum,
+            errorMessage: `Time Limit Exceeded (TLE): infinite loop at line ${lineNum}`,
+            terminalOutput: term,
+          };
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validates return statements and return type compatibility in non-void methods.
+ */
+function validateReturnStatements(lines: string[], normLang: string): CodeAnalysisResult | null {
+  const isJava = normLang.includes("java") && !normLang.includes("script");
+  const isCpp = normLang.includes("cpp") || normLang.includes("c++") || normLang === "c";
+
+  if (!isJava && !isCpp) return null;
+
+  const fullText = lines.join("\n");
+  const methodRegex = /(?:public|private|protected|static|\s)*\b(int\[\]|int\*|int|boolean|bool|String|string|vector<[\w\s,<>]+>|List<[\w\s,<>]+>)\s+([a-zA-Z_]\w*)\s*\([^)]*\)\s*\{/g;
+
+  let match: RegExpExecArray | null;
+  while ((match = methodRegex.exec(fullText)) !== null) {
+    const returnType = match[1];
+    const methodName = match[2];
+    const methodStartIdx = match.index;
+
+    let braceDepth = 0;
+    let methodEndIdx = -1;
+    for (let i = methodStartIdx; i < fullText.length; i++) {
+      if (fullText[i] === "{") braceDepth++;
+      else if (fullText[i] === "}") {
+        braceDepth--;
+        if (braceDepth === 0) {
+          methodEndIdx = i;
+          break;
+        }
+      }
+    }
+
+    if (methodEndIdx === -1) continue;
+
+    const methodBody = fullText.substring(methodStartIdx, methodEndIdx + 1);
+
+    const hasReturn = /\b(return|throw)\b/.test(methodBody);
+    if (!hasReturn) {
+      const linesBeforeEnd = fullText.substring(0, methodEndIdx).split("\n");
+      const lineNum = linesBeforeEnd.length;
+
+      if (isJava) {
+        const term = [
+          `$ javac Solution.java`,
+          `Solution.java:${lineNum}: error: missing return statement`,
+          `    }`,
+          `    ^`,
+          `1 error`,
+          ``,
+          `Process exited with code 1 (Compilation failed)`,
+        ].join("\n");
+
+        return {
+          hasError: true,
+          errorType: "syntax_error",
+          errorLine: lineNum,
+          errorMessage: `Solution.java:${lineNum}: error: missing return statement in method ${methodName}`,
+          terminalOutput: term,
+        };
+      } else {
+        const term = [
+          `$ g++ -std=c++20 solution.cpp -O2`,
+          `solution.cpp:${lineNum}: error: non-void function '${methodName}' does not return a value in all control paths [-Werror,-Wreturn-type]`,
+          `    }`,
+          `    ^`,
+          `1 error generated.`,
+          ``,
+          `Process exited with code 1 (Compilation failed)`,
+        ].join("\n");
+
+        return {
+          hasError: true,
+          errorType: "syntax_error",
+          errorLine: lineNum,
+          errorMessage: `solution.cpp:${lineNum}: error: missing return statement in function ${methodName}`,
+          terminalOutput: term,
+        };
+      }
+    }
+
+    // Type incompatibility in Java: if method returns int[] but returns a boolean, string, or primitive int
+    if (isJava && returnType === "int[]") {
+      const returnMatches = methodBody.matchAll(/return\s+([^;]+);/g);
+      for (const ret of returnMatches) {
+        const expr = ret[1].trim();
+        if (expr === "true" || expr === "false") {
+          const retIdx = methodStartIdx + ret.index!;
+          const lineNum = fullText.substring(0, retIdx).split("\n").length;
+          const term = [
+            `$ javac Solution.java`,
+            `Solution.java:${lineNum}: error: incompatible types: boolean cannot be converted to int[]`,
+            `        return ${expr};`,
+            `               ^`,
+            `1 error`,
+            ``,
+            `Process exited with code 1 (Compilation failed)`,
+          ].join("\n");
+
+          return {
+            hasError: true,
+            errorType: "syntax_error",
+            errorLine: lineNum,
+            errorMessage: `Solution.java:${lineNum}: error: incompatible types: boolean cannot be converted to int[]`,
+            terminalOutput: term,
+          };
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validates class definitions and method signatures.
+ */
+function validateClassAndMethodSignatures(
+  lines: string[],
+  normLang: string,
+  options: CodeAnalysisOptions
+): CodeAnalysisResult | null {
+  const isJava = normLang.includes("java") && !normLang.includes("script");
+  const fullText = lines.join("\n");
+
+  if (isJava) {
+    // Java source code MUST have at least one class definition
+    if (!/\bclass\s+[a-zA-Z_]\w*/.test(fullText)) {
+      let firstLineNum = 1;
+      let firstLineContent = "";
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          firstLineNum = i + 1;
+          firstLineContent = lines[i].trim();
+          break;
+        }
+      }
+      const term = [
+        `$ javac Solution.java`,
+        `Solution.java:${firstLineNum}: error: class, interface, or enum expected`,
+        `    ${firstLineContent}`,
+        `    ^`,
+        `1 error`,
+        ``,
+        `Process exited with code 1 (Compilation failed)`,
+      ].join("\n");
+
+      return {
+        hasError: true,
+        errorType: "syntax_error",
+        errorLine: firstLineNum,
+        errorMessage: `Solution.java:${firstLineNum}: error: class, interface, or enum expected`,
+        terminalOutput: term,
+      };
+    }
+
+    // If options.problemCode or options.problemTitle is provided, check if entry function exists
+    if (options.entryFunctionName && (options.problemCode || options.problemTitle)) {
+      const entryName = options.entryFunctionName;
+      const hasMethod = new RegExp(`\\b${entryName}\\s*\\(`).test(fullText);
+      if (!hasMethod) {
+        const term = [
+          `$ javac Solution.java`,
+          `Solution.java: error: cannot find method '${entryName}' in class Solution`,
+          `    Method '${entryName}' was not defined or has been renamed.`,
+          `1 error`,
+          ``,
+          `Process exited with code 1 (Compilation failed)`,
+        ].join("\n");
+
+        return {
+          hasError: true,
+          errorType: "syntax_error",
+          errorMessage: `Solution.java: error: cannot find method '${entryName}' in class Solution`,
+          terminalOutput: term,
+        };
+      }
+    }
+  }
+
+  return null;
+}
 function collectDeclarations(lines: string[], language: string, declared: Set<string>): void {
   const isPython = language.includes("python") || language === "py";
   const isJava = language.includes("java") && !language.includes("script");

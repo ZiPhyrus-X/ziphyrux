@@ -136,4 +136,149 @@ class Solution {
     expect(html).toContain("color: #ce9178"); // string
     expect(html).toContain("color: #c586c0"); // return
   });
+
+  it("catches missing semicolon in Java and generates realistic compiler diagnostic", () => {
+    const brokenJava = `
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        int x = 5
+        return new int[]{};
+    }
+}
+    `;
+    const result = analyzeSourceCode("java", brokenJava);
+    expect(result.hasError).toBe(true);
+    expect(result.errorType).toBe("syntax_error");
+    expect(result.errorMessage).toContain("error: ';' expected");
+    expect(result.terminalOutput).toContain("Solution.java:4: error: ';' expected");
+    expect(result.terminalOutput).toContain("^");
+  });
+
+  it("catches missing colon in Python block headers", () => {
+    const brokenPy = `
+def twoSum(nums, target)
+    return []
+    `;
+    const result = analyzeSourceCode("python", brokenPy);
+    expect(result.hasError).toBe(true);
+    expect(result.errorType).toBe("syntax_error");
+    expect(result.errorMessage).toContain("SyntaxError: expected ':'");
+    expect(result.terminalOutput).toContain("SyntaxError: expected ':'");
+  });
+
+  it("catches Python indentation error after compound header statement", () => {
+    const unindentedPy = `
+def twoSum(nums, target):
+return []
+    `;
+    const result = analyzeSourceCode("python", unindentedPy);
+    expect(result.hasError).toBe(true);
+    expect(result.errorType).toBe("syntax_error");
+    expect(result.errorMessage).toContain("IndentationError: expected an indented block");
+    expect(result.terminalOutput).toContain("IndentationError: expected an indented block after 'def' statement");
+  });
+
+  it("catches division by zero in Python and throws ZeroDivisionError", () => {
+    const divZeroPy = `
+def twoSum(nums, target):
+    val = 10 / 0
+    return []
+    `;
+    const result = analyzeSourceCode("python", divZeroPy);
+    expect(result.hasError).toBe(true);
+    expect(result.errorType).toBe("runtime_error");
+    expect(result.errorMessage).toContain("ZeroDivisionError: division by zero");
+    expect(result.terminalOutput).toContain("ZeroDivisionError: division by zero");
+  });
+
+  it("catches division by zero in Java and throws ArithmeticException", () => {
+    const divZeroJava = `
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        int x = 10 / 0;
+        return new int[]{};
+    }
+}
+    `;
+    const result = analyzeSourceCode("java", divZeroJava);
+    expect(result.hasError).toBe(true);
+    expect(result.errorType).toBe("runtime_error");
+    expect(result.errorMessage).toContain("ArithmeticException: / by zero");
+    expect(result.terminalOutput).toContain("java.lang.ArithmeticException: / by zero");
+  });
+
+  it("catches null pointer dereference in Java", () => {
+    const nullDeref = `
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        int len = null.length();
+        return new int[]{};
+    }
+}
+    `;
+    const result = analyzeSourceCode("java", nullDeref);
+    expect(result.hasError).toBe(true);
+    expect(result.errorType).toBe("runtime_error");
+    expect(result.errorMessage).toContain("NullPointerException");
+  });
+
+  it("catches negative array indexing in Java and throws ArrayIndexOutOfBoundsException", () => {
+    const negIndex = `
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        int val = nums[-1];
+        return new int[]{};
+    }
+}
+    `;
+    const result = analyzeSourceCode("java", negIndex);
+    expect(result.hasError).toBe(true);
+    expect(result.errorType).toBe("runtime_error");
+    expect(result.errorMessage).toContain("ArrayIndexOutOfBoundsException: Index -1 out of bounds");
+  });
+
+  it("catches infinite loops and reports Time Limit Exceeded (TLE)", () => {
+    const infiniteLoopJava = `
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        while (true) {
+            // endless loop
+        }
+        return new int[]{};
+    }
+}
+    `;
+    const result = analyzeSourceCode("java", infiniteLoopJava);
+    expect(result.hasError).toBe(true);
+    expect(result.errorMessage).toContain("Time Limit Exceeded (TLE)");
+    expect(result.terminalOutput).toContain("Time Limit Exceeded (TLE)");
+    expect(result.terminalOutput).toContain("exit code 124");
+  });
+
+  it("catches missing return statement in Java non-void method", () => {
+    const missingReturn = `
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        int sum = nums[0] + nums[1];
+    }
+}
+    `;
+    const result = analyzeSourceCode("java", missingReturn);
+    expect(result.hasError).toBe(true);
+    expect(result.errorMessage).toContain("missing return statement");
+    expect(result.terminalOutput).toContain("error: missing return statement");
+  });
+
+  it("catches incompatible return types in Java methods", () => {
+    const wrongReturnType = `
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        return true;
+    }
+}
+    `;
+    const result = analyzeSourceCode("java", wrongReturnType);
+    expect(result.hasError).toBe(true);
+    expect(result.errorMessage).toContain("incompatible types: boolean cannot be converted to int[]");
+  });
 });
