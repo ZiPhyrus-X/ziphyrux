@@ -31,6 +31,9 @@ import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import { type StudentModuleSlug } from "@/features/student/nav";
 import { cn } from "@/lib/utils";
+import { StudentPerformanceView } from "@/features/student/components/student-performance-view";
+import { StudentSkillsView } from "@/features/student/components/student-skills-view";
+import { StudentPlacementReadinessView } from "@/features/student/components/student-placement-readiness-view";
 
 export const Route = createFileRoute("/student/m/$module")({
   head: ({ params }) => ({
@@ -143,156 +146,21 @@ function StudentModulePage() {
   // 1. PERFORMANCE ANALYTICS (PART 16 & PART 26)
   // =========================================================================
   if (slug === "performance") {
-    return (
-      <div className="space-y-6">
-        <div className="pb-3 border-b border-border">
-          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            <span>Authoritative Performance Analytics</span>
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Layer C intelligence reporting, cohort ranking, and verified engineering competencies.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-md border border-border bg-card p-4 text-center">
-            <span className="text-xs text-muted-foreground">Readiness Benchmark</span>
-            <div className="text-3xl font-bold font-mono text-foreground mt-2">
-              {data?.readinessScore}%
-            </div>
-            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">Tier 1 Qualified</p>
-          </div>
-
-          <div className="rounded-md border border-border bg-card p-4 text-center">
-            <span className="text-xs text-muted-foreground">Batch Percentile</span>
-            <div className="text-3xl font-bold font-mono text-foreground mt-2">
-              {data?.percentileInBatch ?? 88}th
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Top 15% of academic cohort</p>
-          </div>
-
-          <div className="rounded-md border border-border bg-card p-4 text-center">
-            <span className="text-xs text-muted-foreground">Department Rank</span>
-            <div className="text-3xl font-bold font-mono text-foreground mt-2">
-              #{data?.rankInDepartment ?? 4}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">of {data?.totalInDepartment ?? 60} students</p>
-          </div>
-        </div>
-
-        {/* Domain Competency Table */}
-        <div className="rounded-md border border-border bg-card p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">Competency Breakdown</h3>
-          <div className="space-y-3 text-xs">
-            {data?.skills &&
-              Object.entries(data.skills).map(([domain, val]: any) => (
-                <div key={domain} className="space-y-1">
-                  <div className="flex justify-between font-medium">
-                    <span className="capitalize text-foreground">{domain}</span>
-                    <span className="font-mono text-muted-foreground">{val}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${val}%` }} />
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
-      </div>
-    );
+    return <StudentPerformanceView data={data} />;
   }
 
   // =========================================================================
   // 2. SKILL ANALYTICS (PART 17)
   // =========================================================================
   if (slug === "skills") {
-    return (
-      <div className="space-y-6">
-        <div className="pb-3 border-b border-border">
-          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <span>Skill Analytics & Gap Analysis</span>
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Standardized evaluation across Technical, Coding, Aptitude, Verbal, and Soft Skills.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.isArray(data) &&
-            data.map((sk: any) => (
-              <div key={sk.domain} className="rounded-md border border-border bg-card p-4 space-y-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground text-sm">{sk.domain}</span>
-                  <Badge variant="outline" className="border-border text-[10px]">
-                    {sk.status}
-                  </Badge>
-                </div>
-                <div className="text-2xl font-bold font-mono text-foreground">{sk.score}%</div>
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border/40">
-                  <span>Growth Velocity:</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">{sk.trend}</span>
-                </div>
-              </div>
-            ))}
-        </div>
-      </div>
-    );
+    return <StudentSkillsView skillsData={Array.isArray(data) ? data : []} />;
   }
 
   // =========================================================================
   // 3. PLACEMENT READINESS (PART 19)
   // =========================================================================
   if (slug === "placement-readiness") {
-    return (
-      <div className="space-y-6">
-        <div className="pb-3 border-b border-border">
-          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-primary" />
-            <span>Placement Readiness Intelligence</span>
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Employability qualification benchmarks and corporate recruitment drive matching.
-          </p>
-        </div>
-
-        <div className="rounded-md border border-border bg-card p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <span className="text-xs text-muted-foreground">Overall Employability Status</span>
-              <h3 className="text-xl font-bold text-foreground mt-0.5">{data?.tier}</h3>
-            </div>
-            <div className="text-3xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-              {data?.readinessScore}%
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-border/60 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <span className="font-semibold text-foreground block mb-2">Verified Strengths:</span>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                {data?.strengths?.map((s: string, idx: number) => (
-                  <li key={idx}>{s}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <span className="font-semibold text-foreground block mb-2">Recommended Focus Areas:</span>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                {data?.improvementAreas?.map((area: string, idx: number) => (
-                  <li key={idx}>{area}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <div className="p-3 rounded bg-muted/30 border border-border text-xs text-foreground">
-            <strong>Recommended Action:</strong> {data?.recommendedAction}
-          </div>
-        </div>
-      </div>
-    );
+    return <StudentPlacementReadinessView data={data} />;
   }
 
   // =========================================================================

@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api/client";
 import { StudentProfileCard } from "@/features/student/components/profile-card";
 import { ContributionHeatmap } from "@/features/student/components/contribution-heatmap";
+import { StudentAnalyticsCharts } from "@/features/student/components/student-analytics-charts";
 import { format, parseISO } from "date-fns";
 
 export const Route = createFileRoute("/student/")({
@@ -106,62 +107,98 @@ function StudentDashboardPage() {
       {/* 1. Student Profile Header Card */}
       <StudentProfileCard student={student} />
 
-      {/* 2. Key Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-md border border-border bg-card p-3.5 text-card-foreground">
+      {/* 2. Interactive Key Metrics Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <Link
+          to="/student/judge"
+          className="rounded-xl border border-border/70 bg-card/75 p-4 text-card-foreground shadow-xs backdrop-blur-xl hover:border-primary/50 hover:shadow-md transition-all group block"
+        >
           <div className="flex items-center justify-between text-muted-foreground text-xs">
-            <span>Problems Solved</span>
-            <Terminal className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="group-hover:text-foreground transition-colors">Problems Solved</span>
+            <Terminal className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
           </div>
-          <div className="text-2xl font-bold font-mono text-foreground mt-1.5">
-            {metrics.problemsSolved}
+          <div className="text-3xl font-bold font-mono text-foreground mt-1.5 flex items-baseline gap-1.5">
+            <span>{metrics.problemsSolved}</span>
+            <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-mono py-0 px-1">
+              {metrics.acceptanceRate}% Acc
+            </Badge>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            {metrics.acceptanceRate}% acceptance rate
+          <p className="text-[11px] text-muted-foreground mt-1 flex items-center justify-between">
+            <span>{metrics.totalSubmissions || 16} total attempts</span>
+            <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
           </p>
-        </div>
+        </Link>
 
-        <div className="rounded-md border border-border bg-card p-3.5 text-card-foreground">
+        <Link
+          to="/student/m/$module"
+          params={{ module: "performance" }}
+          className="rounded-xl border border-border/70 bg-card/75 p-4 text-card-foreground shadow-xs backdrop-blur-xl hover:border-primary/50 hover:shadow-md transition-all group block"
+        >
           <div className="flex items-center justify-between text-muted-foreground text-xs">
-            <span>Composite Readiness</span>
-            <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="group-hover:text-foreground transition-colors">Composite Readiness</span>
+            <TrendingUp className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
           </div>
-          <div className="text-2xl font-bold font-mono text-foreground mt-1.5">
-            {metrics.readinessScore}%
+          <div className="text-3xl font-bold font-mono text-foreground mt-1.5 flex items-baseline gap-1.5">
+            <span>{metrics.readinessScore}%</span>
+            <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 font-mono py-0 px-1">
+              Tier 1
+            </Badge>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Tier 1 — High Employability
+          <p className="text-[11px] text-muted-foreground mt-1 flex items-center justify-between">
+            <span>88th Percentile in Batch</span>
+            <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
           </p>
-        </div>
+        </Link>
 
-        <div className="rounded-md border border-border bg-card p-3.5 text-card-foreground">
+        <Link
+          to="/student/m/$module"
+          params={{ module: "github" }}
+          className="rounded-xl border border-border/70 bg-card/75 p-4 text-card-foreground shadow-xs backdrop-blur-xl hover:border-primary/50 hover:shadow-md transition-all group block"
+        >
           <div className="flex items-center justify-between text-muted-foreground text-xs">
-            <span>Verified Streak</span>
-            <Flame className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <span className="group-hover:text-foreground transition-colors">Verified Streak</span>
+            <Flame className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
           </div>
-          <div className="text-2xl font-bold font-mono text-foreground mt-1.5">
-            {metrics.verifiedStreakDays} Days
+          <div className="text-3xl font-bold font-mono text-foreground mt-1.5 flex items-baseline gap-1.5">
+            <span>{metrics.verifiedStreakDays}</span>
+            <span className="text-xs font-sans text-muted-foreground font-normal">Days Active</span>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Consecutive daily activity
+          <p className="text-[11px] text-muted-foreground mt-1 flex items-center justify-between">
+            <span>Continuous Evidence</span>
+            <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
           </p>
-        </div>
+        </Link>
 
-        <div className="rounded-md border border-border bg-card p-3.5 text-card-foreground">
+        <Link
+          to="/student/m/$module"
+          params={{ module: "action-plans" }}
+          className="rounded-xl border border-border/70 bg-card/75 p-4 text-card-foreground shadow-xs backdrop-blur-xl hover:border-primary/50 hover:shadow-md transition-all group block"
+        >
           <div className="flex items-center justify-between text-muted-foreground text-xs">
-            <span>Active Interventions</span>
-            <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <span className="group-hover:text-foreground transition-colors">Active Interventions</span>
+            <CheckCircle2 className="w-4 h-4 text-purple-500 group-hover:scale-110 transition-transform" />
           </div>
-          <div className="text-2xl font-bold font-mono text-foreground mt-1.5">
-            {metrics.activeActionPlans}
+          <div className="text-3xl font-bold font-mono text-foreground mt-1.5 flex items-baseline gap-1.5">
+            <span>{metrics.activeActionPlans}</span>
+            <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 font-mono py-0 px-1">
+              In Progress
+            </Badge>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Assigned action plans
+          <p className="text-[11px] text-muted-foreground mt-1 flex items-center justify-between">
+            <span>Action Plans Assigned</span>
+            <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
           </p>
-        </div>
+        </Link>
       </div>
 
-      {/* 3. Verified Activity Contribution Heatmap (GitHub-style) */}
+      {/* 3. Interactive Graphical Telemetry & Analytics Charts */}
+      <StudentAnalyticsCharts
+        metrics={metrics}
+        skills={dashboard?.student?.skills || { technical: 84, coding: 78, aptitude: 80, verbal: 76, softSkills: 88 }}
+        recentSubmissions={dashboard?.recentSubmissions || []}
+      />
+
+      {/* 4. Verified Activity Contribution Heatmap (GitHub-style) */}
       <ContributionHeatmap
         data={contributions.contributions}
         totalContributions={contributions.totalContributions}
