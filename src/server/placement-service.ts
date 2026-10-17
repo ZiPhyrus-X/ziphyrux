@@ -6,6 +6,7 @@
 import { subDays, subHours, subMinutes } from "date-fns";
 import type { AuthenticatedUser } from "./types";
 import { intelligenceEngine } from "./intelligence/engine";
+import { computeStudentGitHubRepoName } from "./db";
 
 export interface CompanyRecord {
   id: string;
@@ -411,6 +412,8 @@ export class PlacementService {
         ...student,
         phone: extras?.phone || "",
         bio: extras?.bio || "",
+        githubUsername: extras?.githubUsername || (student as any).githubUsername || "",
+        targetGitHubRepo: computeStudentGitHubRepoName(student),
       },
       cgpa: student.cgpa || 7.8,
       activeBacklogs: student.activeBacklogs || 0,

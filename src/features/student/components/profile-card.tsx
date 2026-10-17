@@ -29,6 +29,7 @@ interface StudentProfileCardProps {
     section: string;
     batch: string;
     collegeCode: string;
+    githubUsername?: string;
     targetGitHubRepo?: string;
     bio?: string;
     stats?: {
@@ -106,15 +107,29 @@ export function StudentProfileCard({ student, className }: StudentProfileCardPro
               </div>
             </div>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs gap-1.5 shrink-0 border-border"
-            onClick={copyRepo}
-          >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-            {copied ? "Copied" : "Copy Repo"}
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            {student.githubUsername && (
+              <a
+                href={`https://github.com/${student.githubUsername}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded bg-muted/40 border border-border"
+                title={`View @${student.githubUsername} on GitHub`}
+              >
+                <span>@{student.githubUsername}</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1.5 shrink-0 border-border"
+              onClick={copyRepo}
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? "Copied" : "Copy Repo"}
+            </Button>
+          </div>
         </div>
       )}
 

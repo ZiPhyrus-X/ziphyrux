@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { ArrowRight, Edit2, ExternalLink, Eye, Filter, FolderKanban, Plus, RotateCw, ShieldAlert, Upload, User, Users } from "lucide-react";
+import { ArrowRight, Edit2, ExternalLink, Eye, Filter, FolderKanban, GitBranch, Plus, RotateCw, ShieldAlert, Upload, User, Users } from "lucide-react";
 import { PageHeader, Panel, fmt } from "@/features/coordinator/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -424,8 +424,29 @@ function StudentManagementPage() {
                 {selectedDetails?.student?.usn}
               </Badge>
             </DialogTitle>
-            <DialogDescription>
-              {selectedDetails?.student?.department} · {selectedDetails?.student?.year} · Sec {selectedDetails?.student?.section}
+            <DialogDescription className="space-y-1">
+              <div>
+                {selectedDetails?.student?.department} · {selectedDetails?.student?.year} · Sec {selectedDetails?.student?.section}
+              </div>
+              {selectedDetails?.student?.githubUsername && (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <a
+                    href={`https://github.com/${selectedDetails.student.githubUsername}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+                  >
+                    <GitBranch className="h-3 w-3 text-muted-foreground" />
+                    <span>@{selectedDetails.student.githubUsername}</span>
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                  {selectedDetails?.student?.targetGitHubRepo && (
+                    <span className="font-mono text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border">
+                      {selectedDetails.student.targetGitHubRepo}
+                    </span>
+                  )}
+                </div>
+              )}
             </DialogDescription>
           </DialogHeader>
 

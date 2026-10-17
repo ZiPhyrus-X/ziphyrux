@@ -8279,8 +8279,10 @@ class DatabaseStore {
         readinessScore: intel?.readinessScore ?? 0,
         readinessBand: intel?.readinessBand ?? "Needs Attention",
         problemsSolved: intel?.coding?.problemsSolved ?? 0,
-        phone: extras?.phone || "",
-        bio: extras?.bio || "",
+        phone: extras?.phone || s.phone || "",
+        bio: extras?.bio || s.bio || "",
+        githubUsername: extras?.githubUsername || (s as any).githubUsername || "",
+        targetGitHubRepo: computeStudentGitHubRepoName(s),
         skills: intel?.skills || { technical: null, aptitude: null, verbal: null, softSkills: null },
       };
     });
@@ -8667,8 +8669,16 @@ class DatabaseStore {
       (b) => b.collegeCode === collegeCode && b.department === student.department && b.section === student.section
     );
 
+    const extras = this.studentProfileExtras[studentId];
+
     return {
-      student,
+      student: {
+        ...student,
+        phone: extras?.phone || student.phone || "",
+        bio: extras?.bio || student.bio || "",
+        githubUsername: extras?.githubUsername || (student as any).githubUsername || "",
+        targetGitHubRepo: computeStudentGitHubRepoName(student),
+      },
       metrics: {
         readinessScore,
         skills: { technical, aptitude, verbal, softSkills },
@@ -10080,6 +10090,20 @@ class DatabaseStore {
       ...(data.phone !== undefined ? { phone: data.phone } : {}),
       ...(data.editorPreferences !== undefined ? { editorPreferences: data.editorPreferences } : {}),
     };
+
+    // Synchronize to this.students collection for instant global reflection
+    const matchIdx = this.students.findIndex((s) => s.id === student.id || s.usn.toLowerCase() === student.usn.toLowerCase());
+    if (matchIdx !== -1) {
+      if (data.githubUsername !== undefined) {
+        (this.students[matchIdx] as any).githubUsername = data.githubUsername;
+      }
+      if (data.phone !== undefined) {
+        (this.students[matchIdx] as any).phone = data.phone;
+      }
+      if (data.bio !== undefined) {
+        (this.students[matchIdx] as any).bio = data.bio;
+      }
+    }
 
     return this.getStudentProfile(userContext);
   }

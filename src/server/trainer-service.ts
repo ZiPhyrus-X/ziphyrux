@@ -7,7 +7,7 @@
  * - Insight -> Evidence -> Action Intelligence Integration
  */
 
-import type { DatabaseStore, StudentRecord, TrainerRecord, AllocationRecord, ScheduleRecord } from "./db";
+import { computeStudentGitHubRepoName, type DatabaseStore, type StudentRecord, type TrainerRecord, type AllocationRecord, type ScheduleRecord } from "./db";
 import type { AuthenticatedUser } from "./types";
 import { intelligenceEngine } from "./intelligence/engine";
 
@@ -446,6 +446,9 @@ export class TrainerService {
         usn: s.usn,
         email: s.email,
         phone: extras?.phone || "",
+        bio: extras?.bio || "",
+        githubUsername: extras?.githubUsername || (s as any).githubUsername || "",
+        targetGitHubRepo: computeStudentGitHubRepoName(s),
         department: s.department,
         year: s.year,
         semester: s.semester,
@@ -518,6 +521,8 @@ export class TrainerService {
         ...student,
         phone: extras?.phone || "",
         bio: extras?.bio || "",
+        githubUsername: extras?.githubUsername || (student as any).githubUsername || "",
+        targetGitHubRepo: computeStudentGitHubRepoName(student),
       },
       readinessScore,
       overallScore: readinessScore,
