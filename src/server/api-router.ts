@@ -3278,7 +3278,8 @@ export async function handleApiRequest(request: Request): Promise<Response> {
     const draftMatch = path.match(/^\/api\/v1\/student\/judge\/problems\/([a-zA-Z0-9_-]+)\/draft$/);
     if (draftMatch && method === "GET") {
       const problemId = draftMatch[1];
-      const draft = db.getJudgeDraft(problemId, user);
+      const lang = url.searchParams.get("language") || undefined;
+      const draft = db.getJudgeDraft(problemId, user, lang);
       return jsonResponse({ success: true, data: draft });
     }
 

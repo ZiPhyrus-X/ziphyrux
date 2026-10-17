@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { Route } from "../routes/student.judge";
+import { Route, getStarterCodeForProblem, isCodeMatchingLanguage } from "../routes/student.judge";
 
 // Mock api client
 vi.mock("@/lib/api/client", () => ({
@@ -191,5 +191,36 @@ describe("Student Judge Editor Typing Experience", () => {
     });
 
     expect(textarea.value).toBe("int a = 1;");
+  });
+
+  it("provides distinct starter boilerplate templates for Java, Python, C++, C, and JavaScript", () => {
+    const twoSumProblem = { code: "PRB-0001", title: "Two Sum" };
+
+    const javaCode = getStarterCodeForProblem(twoSumProblem, "java");
+    const pythonCode = getStarterCodeForProblem(twoSumProblem, "python");
+    const cppCode = getStarterCodeForProblem(twoSumProblem, "cpp");
+    const cCode = getStarterCodeForProblem(twoSumProblem, "c");
+    const jsCode = getStarterCodeForProblem(twoSumProblem, "javascript");
+
+    expect(javaCode).toContain("public int[] twoSum");
+    expect(pythonCode).toContain("def twoSum(self, nums: list[int], target: int) -> list[int]:");
+    expect(cppCode).toContain("vector<int> twoSum");
+    expect(cCode).toContain("int* twoSum");
+    expect(jsCode).toContain("var twoSum = function");
+
+    // All templates must be distinct
+    const set = new Set([javaCode, pythonCode, cppCode, cCode, jsCode]);
+    expect(set.size).toBe(5);
+  });
+
+  it("correctly identifies language code matching via isCodeMatchingLanguage", () => {
+    const javaCode = "class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        return new int[]{};\n    }\n}";
+    const pythonCode = "class Solution:\n    def twoSum(self, nums: list[int], target: int) -> list[int]:\n        pass";
+
+    expect(isCodeMatchingLanguage(javaCode, "java")).toBe(true);
+    expect(isCodeMatchingLanguage(javaCode, "python")).toBe(false);
+
+    expect(isCodeMatchingLanguage(pythonCode, "python")).toBe(true);
+    expect(isCodeMatchingLanguage(pythonCode, "java")).toBe(false);
   });
 });

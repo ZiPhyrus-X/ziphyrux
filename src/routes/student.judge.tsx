@@ -242,6 +242,23 @@ export function getStarterCodeForProblem(problem: any, lang: string): string {
     }
   }
 
+  // Problem 2: Shortest Path in Binary Matrix / Grid
+  if (probCode === "PRB-0002" || probTitle.includes("shortest path") || probTitle.includes("grid") || probTitle.includes("matrix")) {
+    switch (l) {
+      case "python":
+        return `class Solution:\n    def shortestPathBinaryMatrix(self, grid: list[list[int]]) -> int:\n        # Let's code flow in your veins\n        # Write your solution here\n        return -1\n`;
+      case "javascript":
+        return `/**\n * @param {number[][]} grid\n * @return {number}\n */\nvar shortestPathBinaryMatrix = function(grid) {\n    // Let's code flow in your veins\n    // Write your solution here\n    return -1;\n};\n`;
+      case "cpp":
+        return `#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    int shortestPathBinaryMatrix(vector<vector<int>>& grid) {\n        // Let's code flow in your veins\n        // Write your solution here\n        return -1;\n    }\n};\n`;
+      case "c":
+        return `int shortestPathBinaryMatrix(int** grid, int gridSize, int* gridColSize) {\n    // Let's code flow in your veins\n    // Write your solution here\n    return -1;\n}\n`;
+      case "java":
+      default:
+        return `class Solution {\n    public int shortestPathBinaryMatrix(int[][] grid) {\n        // Let's code flow in your veins\n        // Write your solution here\n        return -1;\n    }\n}\n`;
+    }
+  }
+
   // Problem 3: Balanced Brackets
   if (probCode === "PRB-0003" || probTitle.includes("bracket") || probTitle.includes("parenthes")) {
     switch (l) {
@@ -302,6 +319,64 @@ function formatSubmissionTime(dateStr?: string): string {
   }
 }
 
+export function getStoredJudgeCode(problemId: string, lang: string): string | null {
+  try {
+    return localStorage.getItem(`zx_judge_code_${problemId}_${lang.toLowerCase()}`);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredJudgeCode(problemId: string, lang: string, source: string) {
+  try {
+    localStorage.setItem(`zx_judge_code_${problemId}_${lang.toLowerCase()}`, source);
+  } catch {}
+}
+
+export function isCodeMatchingLanguage(source: string, lang: string): boolean {
+  if (!source || !source.trim()) return false;
+  const s = source.trim();
+  const l = (lang || "").toLowerCase();
+
+  if (l === "python") {
+    if (
+      s.includes("public class") ||
+      s.includes("public int") ||
+      s.includes("public void") ||
+      s.includes("#include <") ||
+      s.includes("var twoSum") ||
+      s.includes("int[]") ||
+      s.includes("vector<int>")
+    ) {
+      return false;
+    }
+  } else if (l === "java") {
+    if (
+      s.includes("def twoSum") ||
+      s.includes("def isValid") ||
+      s.includes("def solve") ||
+      s.includes("def shortestPath") ||
+      s.includes("#include <vector>") ||
+      s.includes("var twoSum")
+    ) {
+      return false;
+    }
+  } else if (l === "cpp") {
+    if (s.includes("public class") || s.includes("def twoSum") || s.includes("var twoSum")) {
+      return false;
+    }
+  } else if (l === "c") {
+    if (s.includes("class Solution") || s.includes("def twoSum") || s.includes("var twoSum")) {
+      return false;
+    }
+  } else if (l === "javascript") {
+    if (s.includes("public class") || s.includes("#include <") || s.includes("def twoSum")) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function StudentJudgePage() {
   const [problems, setProblems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -322,6 +397,7 @@ function StudentJudgePage() {
   const [undoStack, setUndoStack] = useState<Array<{ code: string; selStart: number; selEnd: number }>>([]);
   const [redoStack, setRedoStack] = useState<Array<{ code: string; selStart: number; selEnd: number }>>([]);
   const pendingCursorPos = useRef<{ start: number; end: number } | null>(null);
+  const codeByLangRef = useRef<Record<string, Record<string, string>>>({});
 
   // Execution State
   const [running, setRunning] = useState(false);
@@ -429,16 +505,31 @@ function StudentJudgePage() {
 
     async function loadProblemWorkspace() {
       try {
+        const probId = currentProblem.id;
         const [draftRes, subRes] = await Promise.all([
-          api.student.judge.getDraft(currentProblem.id).catch(() => null),
-          api.student.judge.submissions(currentProblem.id).catch(() => []),
+          api.student.judge.getDraft(probId, language).catch(() => null),
+          api.student.judge.submissions(probId).catch(() => []),
         ]);
 
-        if (draftRes && draftRes.code) {
+        if (draftRes && draftRes.code && isCodeMatchingLanguage(draftRes.code, draftRes.language || language)) {
+          const draftLang = draftRes.language || language;
+          setLanguage(draftLang);
           setCode(draftRes.code);
-          setLanguage(draftRes.language || "java");
+          if (!codeByLangRef.current[probId]) codeByLangRef.current[probId] = {};
+          codeByLangRef.current[probId][draftLang] = draftRes.code;
+          setStoredJudgeCode(probId, draftLang, draftRes.code);
         } else {
-          setCode(getStarterCodeForProblem(currentProblem, language));
+          const cached = codeByLangRef.current[probId]?.[language] || getStoredJudgeCode(probId, language);
+          if (cached && cached.trim() && isCodeMatchingLanguage(cached, language)) {
+            setCode(cached);
+            if (!codeByLangRef.current[probId]) codeByLangRef.current[probId] = {};
+            codeByLangRef.current[probId][language] = cached;
+          } else {
+            const starter = getStarterCodeForProblem(currentProblem, language);
+            setCode(starter);
+            if (!codeByLangRef.current[probId]) codeByLangRef.current[probId] = {};
+            codeByLangRef.current[probId][language] = starter;
+          }
         }
 
         setSubmissionsList(subRes || []);
@@ -458,10 +549,50 @@ function StudentJudgePage() {
 
   // Handle language switch
   const handleLanguageChange = (newLang: string) => {
-    setLanguage(newLang);
-    if (!isDirty || !code.trim()) {
-      setCode(getStarterCodeForProblem(currentProblem, newLang));
+    if (newLang === language) return;
+
+    // 1. Save current language's working code
+    const probId = currentProblem?.id || "default";
+    if (!codeByLangRef.current[probId]) {
+      codeByLangRef.current[probId] = {};
     }
+    if (code) {
+      codeByLangRef.current[probId][language] = code;
+      if (currentProblem?.id) {
+        setStoredJudgeCode(currentProblem.id, language, code);
+      }
+    }
+
+    // 2. Set new language
+    setLanguage(newLang);
+
+    // 3. Resolve code for new language:
+    // Check in-memory cache first, then localStorage
+    const cached =
+      codeByLangRef.current[probId]?.[newLang] ||
+      (currentProblem?.id ? getStoredJudgeCode(currentProblem.id, newLang) : null);
+
+    let nextCode = "";
+    if (cached && cached.trim() && isCodeMatchingLanguage(cached, newLang)) {
+      nextCode = cached;
+    } else {
+      // Load fresh boilerplate for the selected language!
+      nextCode = getStarterCodeForProblem(currentProblem, newLang);
+      codeByLangRef.current[probId][newLang] = nextCode;
+      if (currentProblem?.id) {
+        setStoredJudgeCode(currentProblem.id, newLang, nextCode);
+      }
+    }
+
+    setCode(nextCode);
+    setUndoStack([]);
+    setRedoStack([]);
+    setIsDirty(false);
+    setDraftSaved(true);
+    setSampleResult(null);
+    setSubmissionResult(null);
+
+    toast.info(`Switched to ${newLang.toUpperCase()} boilerplate`);
   };
 
   // Previous & Next Problem Navigation
@@ -492,10 +623,17 @@ function StudentJudgePage() {
   const saveDraft = async () => {
     if (!currentProblem) return;
     try {
-      await api.student.judge.saveDraft(currentProblem.id, language, code);
+      const probId = currentProblem.id;
+      if (!codeByLangRef.current[probId]) {
+        codeByLangRef.current[probId] = {};
+      }
+      codeByLangRef.current[probId][language] = code;
+      setStoredJudgeCode(probId, language, code);
+
+      await api.student.judge.saveDraft(probId, language, code);
       setDraftSaved(true);
       setIsDirty(false);
-      toast.success("Draft saved successfully.");
+      toast.success(`Draft saved for ${language.toUpperCase()}.`);
     } catch {
       toast.error("Failed to save draft.");
     }
@@ -533,6 +671,14 @@ function StudentJudgePage() {
     setCode(newCode);
     setIsDirty(true);
     setDraftSaved(false);
+    const probId = currentProblem?.id || "default";
+    if (!codeByLangRef.current[probId]) {
+      codeByLangRef.current[probId] = {};
+    }
+    codeByLangRef.current[probId][language] = newCode;
+    if (currentProblem?.id) {
+      setStoredJudgeCode(currentProblem.id, language, newCode);
+    }
   };
 
   const handleCursorEvent = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
@@ -540,10 +686,19 @@ function StudentJudgePage() {
   };
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setCode(e.target.value);
+    const val = e.target.value;
+    setCode(val);
     setIsDirty(true);
     setDraftSaved(false);
     updateCursorPos(e.target);
+    const probId = currentProblem?.id || "default";
+    if (!codeByLangRef.current[probId]) {
+      codeByLangRef.current[probId] = {};
+    }
+    codeByLangRef.current[probId][language] = val;
+    if (currentProblem?.id) {
+      setStoredJudgeCode(currentProblem.id, language, val);
+    }
   };
 
   // Full-line count & memoized VS Code syntax-highlighted HTML
@@ -579,6 +734,10 @@ function StudentJudgePage() {
           pendingCursorPos.current = { start: last.selStart, end: last.selEnd };
           setCode(last.code);
           setIsDirty(true);
+          const probId = currentProblem?.id || "default";
+          if (!codeByLangRef.current[probId]) codeByLangRef.current[probId] = {};
+          codeByLangRef.current[probId][language] = last.code;
+          if (currentProblem?.id) setStoredJudgeCode(currentProblem.id, language, last.code);
           return;
         }
       } else if ((e.key === "y" && !e.shiftKey) || (e.key === "z" && e.shiftKey)) {
@@ -590,6 +749,10 @@ function StudentJudgePage() {
           pendingCursorPos.current = { start: next.selStart, end: next.selEnd };
           setCode(next.code);
           setIsDirty(true);
+          const probId = currentProblem?.id || "default";
+          if (!codeByLangRef.current[probId]) codeByLangRef.current[probId] = {};
+          codeByLangRef.current[probId][language] = next.code;
+          if (currentProblem?.id) setStoredJudgeCode(currentProblem.id, language, next.code);
           return;
         }
       }
@@ -767,10 +930,23 @@ function StudentJudgePage() {
 
   // Reset Code
   const resetCode = () => {
-    setCode(getStarterCodeForProblem(currentProblem, language));
-    setIsDirty(true);
-    setDraftSaved(false);
-    toast.info("Reset code to default solution template.");
+    const starter = getStarterCodeForProblem(currentProblem, language);
+    const probId = currentProblem?.id || "default";
+    setCode(starter);
+    if (!codeByLangRef.current[probId]) {
+      codeByLangRef.current[probId] = {};
+    }
+    codeByLangRef.current[probId][language] = starter;
+    if (currentProblem?.id) {
+      setStoredJudgeCode(currentProblem.id, language, starter);
+    }
+    setUndoStack([]);
+    setRedoStack([]);
+    setIsDirty(false);
+    setDraftSaved(true);
+    setSampleResult(null);
+    setSubmissionResult(null);
+    toast.info(`Reset code to ${language.toUpperCase()} solution template.`);
   };
 
   // Format Code with Prettier
@@ -1334,8 +1510,15 @@ function StudentJudgePage() {
                         key={sub.id}
                         onClick={() => {
                           if (sub.sourceCode) {
+                            const subLang = sub.language || "java";
+                            setLanguage(subLang);
                             setCode(sub.sourceCode);
-                            setLanguage(sub.language);
+                            const probId = currentProblem?.id || "default";
+                            if (!codeByLangRef.current[probId]) codeByLangRef.current[probId] = {};
+                            codeByLangRef.current[probId][subLang] = sub.sourceCode;
+                            setStoredJudgeCode(probId, subLang, sub.sourceCode);
+                            setIsDirty(true);
+                            setDraftSaved(false);
                             toast.info("Loaded submission code into editor.");
                           }
                         }}

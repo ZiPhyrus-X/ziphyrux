@@ -10197,8 +10197,17 @@ class DatabaseStore {
     return events;
   }
 
-  public getJudgeDraft(problemId: string, userContext: AuthenticatedUser): JudgeDraftRecord | null {
+  public getJudgeDraft(problemId: string, userContext: AuthenticatedUser, language?: string): JudgeDraftRecord | null {
     const student = this.resolveStudent(userContext);
+    if (language) {
+      const langMatch = this.judgeDrafts.find(
+        (d) =>
+          (d.studentId === student.id || d.studentId === userContext.id) &&
+          d.problemId === problemId &&
+          d.language?.toLowerCase() === language.toLowerCase()
+      );
+      if (langMatch) return langMatch;
+    }
     return (
       this.judgeDrafts.find(
         (d) => (d.studentId === student.id || d.studentId === userContext.id) && d.problemId === problemId
@@ -10213,15 +10222,19 @@ class DatabaseStore {
     userContext: AuthenticatedUser
   ): JudgeDraftRecord {
     const student = this.resolveStudent(userContext);
+    const langKey = (language || "java").toLowerCase();
     const existingIndex = this.judgeDrafts.findIndex(
-      (d) => (d.studentId === student.id || d.studentId === userContext.id) && d.problemId === problemId
+      (d) =>
+        (d.studentId === student.id || d.studentId === userContext.id) &&
+        d.problemId === problemId &&
+        d.language?.toLowerCase() === langKey
     );
 
     const draft: JudgeDraftRecord = {
       id: existingIndex >= 0 ? this.judgeDrafts[existingIndex].id : `draft-${Date.now()}`,
       studentId: student.id,
       problemId,
-      language,
+      language: langKey,
       code,
       updatedAt: new Date().toISOString(),
     };

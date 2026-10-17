@@ -813,7 +813,10 @@ export const api = {
         return request<any[]>(`/api/v1/student/judge/problems${qs ? `?${qs}` : ""}`);
       },
       getProblem: (id: string) => request<any>(`/api/v1/student/judge/problems/${id}`),
-      getDraft: (problemId: string) => request<any>(`/api/v1/student/judge/problems/${problemId}/draft`),
+      getDraft: (problemId: string, language?: string) =>
+        request<any>(
+          `/api/v1/student/judge/problems/${problemId}/draft${language ? `?language=${encodeURIComponent(language)}` : ""}`
+        ),
       saveDraft: (problemId: string, language: string, code: string) =>
         request<any>(`/api/v1/student/judge/problems/${problemId}/draft`, {
           method: "POST",
