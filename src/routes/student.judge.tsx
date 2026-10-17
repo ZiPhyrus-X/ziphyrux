@@ -2532,7 +2532,6 @@ function StudentJudgePage() {
                             >
                               <Play className="w-3 h-3 fill-white" />
                               <span className="font-sans font-normal">Run Sample Tests</span>
-                              <span className="text-[10px] opacity-60 font-sans font-light tracking-tight">(Ctrl+')</span>
                             </Button>
 
                             <Button
@@ -2542,7 +2541,6 @@ function StudentJudgePage() {
                             >
                               <Send className="w-3 h-3" />
                               <span className="font-sans font-normal">Submit to Matrix</span>
-                              <span className="text-[10px] opacity-60 font-sans font-light tracking-tight">(Ctrl+Enter)</span>
                             </Button>
 
                             <Button
