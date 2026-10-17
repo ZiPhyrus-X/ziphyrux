@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { StudentPerformanceView } from "@/features/student/components/student-performance-view";
 import { StudentSkillsView } from "@/features/student/components/student-skills-view";
 import { StudentPlacementReadinessView } from "@/features/student/components/student-placement-readiness-view";
+import { StudentActionPlansView } from "@/features/student/components/student-action-plans-view";
 
 export const Route = createFileRoute("/student/m/$module")({
   head: ({ params }) => ({
@@ -167,82 +168,14 @@ function StudentModulePage() {
   // 4. ACTION PLANS (GITHUB ISSUES STYLE) (PART 18)
   // =========================================================================
   if (slug === "action-plans") {
-    const handleMilestoneComplete = async (planId: string, milestoneId: string) => {
-      try {
-        await api.student.actionPlans.completeMilestone(planId, milestoneId, evidenceText || "Verified execution");
-        toast.success("Milestone marked completed with evidence.");
-        setEvidenceText("");
-        setSelectedPlanId(null);
-        // Refresh
-        const updated = await api.student.actionPlans.list();
-        setData(updated);
-      } catch (err) {
-        toast.error("Failed to complete milestone.");
-      }
-    };
-
     return (
-      <div className="space-y-6">
-        <div className="pb-3 border-b border-border">
-          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary" />
-            <span>Assigned Action Plans & Interventions</span>
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            GitHub Issues-inspired personalized learning milestones and verified practice tracks.
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          {Array.isArray(data) && data.length ? (
-            data.map((plan: any) => (
-              <div key={plan.id} className="rounded-md border border-border bg-card p-4 space-y-3 text-xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-foreground text-sm">{plan.title}</span>
-                    <Badge variant="outline" className="text-[10px] border-border">
-                      {plan.status}
-                    </Badge>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    Due: {plan.deadline}
-                  </span>
-                </div>
-
-                {/* Sub-tasks */}
-                <div className="space-y-1.5 pt-2">
-                  {plan.tasks?.map((task: any) => (
-                    <div
-                      key={task.id}
-                      className="p-2.5 rounded border border-border/40 bg-background/50 flex items-center justify-between text-xs"
-                    >
-                      <span className={task.completed ? "line-through text-muted-foreground" : "text-foreground font-medium"}>
-                        {task.title}
-                      </span>
-                      {task.completed ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-6 text-[11px] border-border"
-                          onClick={() => handleMilestoneComplete(plan.id, task.id)}
-                        >
-                          Submit Evidence
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="py-12 text-center text-xs text-muted-foreground rounded-md border border-dashed border-border p-6">
-              No active action plans assigned at this time.
-            </div>
-          )}
-        </div>
-      </div>
+      <StudentActionPlansView
+        initialPlans={Array.isArray(data) ? data : []}
+        onRefresh={async () => {
+          const updated = await api.student.actionPlans.list();
+          setData(updated);
+        }}
+      />
     );
   }
 

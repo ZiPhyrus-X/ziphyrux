@@ -1019,6 +1019,7 @@ class DatabaseStore {
   public studentActivityEvents: StudentActivityEventRecord[] = [];
   public studentProfileExtras: Record<string, StudentProfileExtraRecord> = {};
   public registrationTokens: RegistrationTokenRecord[] = [];
+  public completedStudentMilestones: Set<string> = new Set<string>();
 
   constructor() {
     this.seed();
@@ -11441,22 +11442,72 @@ class DatabaseStore {
   public getStudentActionPlans(userContext: AuthenticatedUser) {
     const student = this.resolveStudent(userContext);
     return this.actionPlans
-      .filter((ap) => ap.collegeCode === student.collegeCode)
-      .map((ap) => ({
-        id: ap.id,
-        title: ap.title,
-        status: ap.status,
-        priority: "High",
-        deadline: ap.deadline,
-        tasksCount: ap.targets?.departments?.length || 3,
-        completedTasksCount: 1,
-        assignedBy: ap.createdBy,
-        tasks: [
-          { id: `${ap.id}-t1`, title: "Review foundational theory", completed: true },
-          { id: `${ap.id}-t2`, title: "Solve practice problems", completed: false },
-          { id: `${ap.id}-t3`, title: "Submit code verification", completed: false },
-        ],
-      }));
+      .filter((ap) => ap.collegeCode === student.collegeCode && (!ap.studentId || ap.studentId === student.id))
+      .map((ap) => {
+        const rawTasks = [
+          {
+            id: `${ap.id}-t1`,
+            title: "Review Foundational Theory & Concepts",
+            description: "Study key algorithmic complexity models, state transitions, and edge cases.",
+            actionType: "learning",
+            actionUrl: "/student/learning",
+            actionText: "Study Lesson",
+            defaultCompleted: true,
+          },
+          {
+            id: `${ap.id}-t2`,
+            title: "Solve Practice Problems on Judge",
+            description: "Implement and execute test-verified optimal solutions in Java, Python, or C++.",
+            actionType: "judge",
+            actionUrl: "/student/judge",
+            actionText: "Open Judge",
+            defaultCompleted: false,
+          },
+          {
+            id: `${ap.id}-t3`,
+            title: "Submit Code Verification & Peer Evidence",
+            description: "Synchronize solutions with GitHub and verify test suite benchmarks.",
+            actionType: "evidence",
+            actionUrl: "/student/m/github",
+            actionText: "GitHub Sync",
+            defaultCompleted: false,
+          },
+        ];
+
+        const tasks = rawTasks.map((t) => {
+          const isDone =
+            t.defaultCompleted ||
+            this.completedStudentMilestones.has(`${student.id}:${ap.id}:${t.id}`) ||
+            this.completedStudentMilestones.has(`${student.id}:${ap.id}:m-1`);
+          return {
+            id: t.id,
+            title: t.title,
+            description: t.description,
+            actionType: t.actionType,
+            actionUrl: t.actionUrl,
+            actionText: t.actionText,
+            completed: isDone,
+          };
+        });
+
+        const completedTasksCount = tasks.filter((t) => t.completed).length;
+        const allCompleted = completedTasksCount === tasks.length;
+
+        return {
+          id: ap.id,
+          title: (ap as any).title || ap.description || "Remediation Action Plan",
+          description: ap.description,
+          status: allCompleted ? "Completed" : ap.status || "In Progress",
+          priority: ap.isOverdue ? "High" : (ap as any).priority || "High",
+          deadline: ap.deadline,
+          isOverdue: ap.isOverdue,
+          domain: (ap as any).domain || (ap.id === "act-1" ? "Data Structures & Algorithms" : ap.id === "act-2" ? "Dynamic Programming" : "Computer Science Core"),
+          tasksCount: tasks.length,
+          completedTasksCount,
+          assignedBy: ap.trainerName || (ap as any).createdBy || "Faculty Mentor (Rohan Verma)",
+          tasks,
+        };
+      });
   }
 
   public completeStudentActionPlanMilestone(
@@ -11469,12 +11520,14 @@ class DatabaseStore {
     const plan = this.actionPlans.find((ap) => ap.id === planId);
     if (!plan) throw new Error("Action plan not found.");
 
+    this.completedStudentMilestones.add(`${student.id}:${planId}:${milestoneId}`);
+
     const event: StudentActivityEventRecord = {
       id: `act-ev-${Date.now()}`,
       studentId: student.id,
       collegeId: student.collegeCode,
       activityType: "action_plan_milestone",
-      title: `Action Plan Progress: ${plan.title}`,
+      title: `Action Plan Progress: ${(plan as any).title || plan.description || "Action Plan"}`,
       description: `Completed milestone: ${milestoneId}. Evidence: ${evidence.slice(0, 50)}...`,
       referenceId: plan.id,
       metadata: { planId, milestoneId },
